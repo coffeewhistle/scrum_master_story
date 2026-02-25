@@ -23,6 +23,9 @@ export const STARTING_CASH = 0;
 /** Bonus multiplier for completing 100% of tickets */
 export const PERFECT_COMPLETION_BONUS = 0.25;
 
+/** Bonus per remaining day when delivering early (fraction of base payout) */
+export const EARLY_DELIVERY_BONUS_PER_DAY = 0.05;
+
 /** Probability (0-1) of a blocker spawning per tick during an active sprint */
 export const BLOCKER_SPAWN_CHANCE_PER_TICK = 0.04;
 

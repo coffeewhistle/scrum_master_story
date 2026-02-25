@@ -32,7 +32,7 @@ import { useBoardStore } from '../stores/boardStore';
 import { useUIStore } from '../stores/uiStore';
 
 // Engine
-import { generateContract, resetSimState } from '../engine/SprintSimulator';
+import { generateContract, resetSimState, shipEarly } from '../engine/SprintSimulator';
 import { GameLoop } from '../engine/GameLoop';
 
 import { colors } from '../constants/theme';
@@ -43,6 +43,7 @@ const GameScreen: React.FC = () => {
   const sprintNumber = useSprintStore((s) => s.sprintNumber);
   const cashOnHand = useSprintStore((s) => s.cashOnHand);
   const showSprintResult = useUIStore((s) => s.showSprintResult);
+  const canShipEarly = useUIStore((s) => s.canShipEarly);
 
   // Stop game loop on unmount
   useEffect(() => {
@@ -104,7 +105,29 @@ const GameScreen: React.FC = () => {
             </Animated.View>
           )}
 
-          {phase === 'active' && <SprintTimer />}
+          {phase === 'active' && (
+            <>
+              <SprintTimer />
+              {canShipEarly && (
+                <Animated.View
+                  entering={FadeIn.duration(300)}
+                  style={styles.shipEarlyContainer}
+                >
+                  <TouchableOpacity
+                    style={styles.shipEarlyButton}
+                    onPress={shipEarly}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.shipEarlyEmoji}>📦</Text>
+                    <Text style={styles.shipEarlyText}>Ship Early</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.shipEarlyHint}>
+                    Deliver ahead of schedule for a bonus!
+                  </Text>
+                </Animated.View>
+              )}
+            </>
+          )}
         </View>
 
         {/* Sprint result modal overlay */}
@@ -164,6 +187,43 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 12,
     marginTop: 8,
+  },
+  shipEarlyContainer: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    backgroundColor: colors.bgPrimary,
+    borderTopWidth: 1,
+    borderTopColor: colors.success,
+  },
+  shipEarlyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.success,
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    borderRadius: 12,
+    shadowColor: colors.success,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  shipEarlyEmoji: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  shipEarlyText: {
+    color: colors.textDark,
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  shipEarlyHint: {
+    color: colors.success,
+    fontSize: 11,
+    marginTop: 6,
+    fontStyle: 'italic',
   },
 });
 

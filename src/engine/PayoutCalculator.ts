@@ -6,7 +6,11 @@
  */
 
 import type { Contract, SprintGrade, SprintResult, Ticket } from '../types';
-import { PERFECT_COMPLETION_BONUS, GRADE_THRESHOLDS } from '../constants/game.constants';
+import {
+  PERFECT_COMPLETION_BONUS,
+  EARLY_DELIVERY_BONUS_PER_DAY,
+  GRADE_THRESHOLDS,
+} from '../constants/game.constants';
 
 /**
  * Determine the letter grade from a completion ratio using GRADE_THRESHOLDS.
@@ -31,15 +35,17 @@ function gradeFromRatio(ratio: number): SprintGrade {
 /**
  * Calculate the final payout and performance summary for a completed sprint.
  *
- * @param contract       The contract that was active during the sprint.
- * @param tickets        The full ticket array at sprint end (stories + blockers).
+ * @param contract        The contract that was active during the sprint.
+ * @param tickets         The full ticket array at sprint end (stories + blockers).
  * @param blockersSmashed Number of blocker tickets the player tapped/smashed.
+ * @param daysRemaining   Days left on the sprint clock (> 0 means early delivery).
  * @returns A SprintResult suitable for the review overlay.
  */
 export function calculatePayout(
   contract: Contract,
   tickets: Ticket[],
   blockersSmashed: number,
+  daysRemaining: number = 0,
 ): SprintResult {
   // Only story tickets count toward completion metrics.
   const storyTickets = tickets.filter((t) => t.type === 'story');
@@ -55,6 +61,12 @@ export function calculatePayout(
   const bonusEarned =
     completionRatio >= 1.0 ? cashEarned * PERFECT_COMPLETION_BONUS : 0;
 
+  // Early delivery bonus: 5% of base payout per remaining day
+  const earlyDeliveryBonus =
+    daysRemaining > 0
+      ? contract.payout * EARLY_DELIVERY_BONUS_PER_DAY * daysRemaining
+      : 0;
+
   const grade = gradeFromRatio(completionRatio);
 
   return {
@@ -65,6 +77,8 @@ export function calculatePayout(
     blockersSmashed,
     cashEarned,
     bonusEarned,
+    earlyDeliveryBonus,
+    daysRemaining,
     grade,
   };
 }

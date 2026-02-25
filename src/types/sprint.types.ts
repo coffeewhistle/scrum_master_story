@@ -48,6 +48,10 @@ export interface SprintResult {
   cashEarned: number;
   /** Extra cash from perfect completion bonus */
   bonusEarned: number;
+  /** Extra cash from shipping before the deadline */
+  earlyDeliveryBonus: number;
+  /** Number of days remaining when shipped early (0 if not early) */
+  daysRemaining: number;
   /** Letter grade: S(100%), A(80%+), B(60%+), C(40%+), D(20%+), F(<20%) */
   grade: SprintGrade;
 }

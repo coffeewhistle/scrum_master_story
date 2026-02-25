@@ -109,6 +109,28 @@ export function generateContract(): Contract {
 export function resetSimState(): void {
   ticksThisDay = 0;
   blockersSmashed = 0;
+  useUIStore.getState().setCanShipEarly(false);
+}
+
+/**
+ * Ship the current sprint early. Called by the UI when all stories are
+ * complete and the player taps "Ship Early".
+ *
+ * Calculates payout with an early delivery bonus based on remaining days.
+ */
+export function shipEarly(): void {
+  const sprint = useSprintStore.getState();
+  const contract = sprint.currentContract;
+  if (!contract || sprint.phase !== 'active') return;
+
+  const daysRemaining = sprint.totalDays - sprint.currentDay;
+  const finalTickets = useBoardStore.getState().tickets;
+
+  useSprintStore.getState().endSprint();
+  GameLoop.stop();
+
+  const result = calculatePayout(contract, finalTickets, blockersSmashed, daysRemaining);
+  useUIStore.getState().showResult(result);
 }
 
 /**
@@ -172,11 +194,16 @@ export function tick(): void {
   }
 
   // ── 4. Roll for blocker spawn ────────────────────────────────────────────
-  const currentActiveBlockers = useBoardStore
-    .getState()
-    .tickets.filter((t) => t.type === 'blocker' && t.status === 'doing').length;
+  const latestTickets = useBoardStore.getState().tickets;
+  const currentActiveBlockers = latestTickets.filter(
+    (t) => t.type === 'blocker' && t.status === 'doing',
+  ).length;
+  const hasIncompleteWork = latestTickets.some(
+    (t) => t.type === 'story' && t.status !== 'done',
+  );
 
   if (
+    hasIncompleteWork &&
     rollChance(BLOCKER_SPAWN_CHANCE_PER_TICK) &&
     currentActiveBlockers < MAX_ACTIVE_BLOCKERS
   ) {
@@ -190,6 +217,15 @@ export function tick(): void {
     };
     useBoardStore.getState().spawnBlocker(blockerTicket);
     useUIStore.getState().toast('Blocker! All work is frozen!');
+  }
+
+  // ── 4b. Check if all stories are done (early delivery available) ───────
+  if (!hasIncompleteWork && currentActiveBlockers === 0) {
+    // All stories complete and no active blockers — player can ship early
+    if (!useUIStore.getState().canShipEarly) {
+      useUIStore.getState().setCanShipEarly(true);
+      useUIStore.getState().toast('All tickets done! Ship early for a bonus!');
+    }
   }
 
   // ── 5. Day tracking ─────────────────────────────────────────────────────

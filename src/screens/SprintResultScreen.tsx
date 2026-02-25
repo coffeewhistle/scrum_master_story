@@ -79,7 +79,7 @@ const SprintResultScreen: React.FC = () => {
   const result = lastSprintResult;
   const gradeColor = GRADE_COLORS[result.grade];
   const gradeLabel = GRADE_LABELS[result.grade];
-  const totalEarned = result.cashEarned + result.bonusEarned;
+  const totalEarned = result.cashEarned + result.bonusEarned + result.earlyDeliveryBonus;
 
   const handleCollect = () => {
     collectPayout(totalEarned);
@@ -151,6 +151,14 @@ const SprintResultScreen: React.FC = () => {
                 value={`+ ${formatCash(result.bonusEarned)}`}
                 valueColor={colors.gold}
                 icon="⭐"
+              />
+            )}
+            {result.earlyDeliveryBonus > 0 && (
+              <StatRow
+                label={`Early Delivery (${result.daysRemaining}d early)`}
+                value={`+ ${formatCash(result.earlyDeliveryBonus)}`}
+                valueColor={colors.success}
+                icon="📦"
               />
             )}
             <View style={styles.totalRow}>

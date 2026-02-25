@@ -6,7 +6,7 @@
  * before the card disappears.
  */
 
-import React, { useCallback } from 'react';
+import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -15,7 +15,6 @@ import Animated, {
   withSequence,
   withTiming,
   withSpring,
-  runOnJS,
   Easing,
 } from 'react-native-reanimated';
 import type { Ticket } from '../types';
@@ -69,18 +68,17 @@ const BlockerCard: React.FC<BlockerCardProps> = ({ ticket }) => {
     opacity: cardOpacity.value,
   }));
 
-  const doSmash = useCallback(() => {
-    smashBlocker(ticket.id);
-    recordBlockerSmash();
-  }, [ticket.id, smashBlocker]);
-
   const handleSmash = () => {
     if (smashing) return; // Prevent double-tap inflation of blockersSmashed
     setSmashing(true);
-    // Shrink animation, then remove
-    cardScale.value = withSpring(0, { damping: 12, stiffness: 200 }, () => {
-      runOnJS(doSmash)();
-    });
+
+    // Immediately update store so the engine unblocks work on the next tick.
+    // The shrink animation plays cosmetically while work resumes.
+    smashBlocker(ticket.id);
+    recordBlockerSmash();
+
+    // Shrink animation (purely visual — store already updated)
+    cardScale.value = withSpring(0, { damping: 12, stiffness: 200 });
     cardOpacity.value = withTiming(0, { duration: 250 });
   };
 
