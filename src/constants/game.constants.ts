@@ -44,3 +44,9 @@ export const GRADE_THRESHOLDS = {
 
 /** Maximum number of developers on the team (upgradeable in future) */
 export const MAX_TEAM_SIZE = 4;
+
+/**
+ * Exponent applied to completion ratio for contract payout curve.
+ * Creates a gentle curve: 100%→100%, 80%→~74%, 60%→~53%, 40%→~33%.
+ */
+export const CONTRACT_PAYOUT_CURVE = 1.3;

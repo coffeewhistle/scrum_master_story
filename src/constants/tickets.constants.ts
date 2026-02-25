@@ -65,12 +65,14 @@ export const BLOCKER_STORY_POINTS = 0;
 
 /** Number of tickets per contract */
 export const TICKETS_PER_CONTRACT = {
-  min: 5,
-  max: 8,
+  min: 12,
+  max: 18,
 } as const;
+
+export const SPRINTS_PER_CONTRACT_RANGE = { min: 2, max: 4 } as const;
 
 /** Base payout range per contract (cash) */
 export const CONTRACT_PAYOUT_RANGE = {
-  min: 500,
-  max: 1500,
+  min: 2000,
+  max: 6000,
 } as const;

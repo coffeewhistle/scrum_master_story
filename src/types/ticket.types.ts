@@ -1,20 +1,18 @@
 /**
  * Ticket types for the Kanban board system.
- * 
- * Stories: Standard work items that developers complete for velocity.
- * Blockers: Crisis tickets that halt progress until the player smashes them.
  */
 
 export type TicketType = 'story' | 'blocker';
 
-export type TicketStatus = 'todo' | 'doing' | 'done';
+/** backlog = in contract but not yet pulled into a sprint board */
+export type TicketStatus = 'backlog' | 'todo' | 'doing' | 'done';
 
 export interface Ticket {
   /** Unique identifier (UUID) */
   id: string;
   /** Whether this is a normal story or a blocker */
   type: TicketType;
-  /** Display name shown on the card (e.g., "Implement Login API") */
+  /** Display name shown on the card */
   title: string;
   /** Total story points required to complete this ticket */
   storyPoints: number;

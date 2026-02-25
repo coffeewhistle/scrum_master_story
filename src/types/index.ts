@@ -10,4 +10,5 @@ export type {
   Contract,
   SprintGrade,
   SprintResult,
+  SprintResultKind,
 } from './sprint.types';

@@ -9,12 +9,19 @@ interface SprintState {
   totalDays: number;
   cashOnHand: number;
   currentContract: Contract | null;
+  /** Total sprints played across all contracts (for display) */
   sprintNumber: number;
 
   // Actions
-  startSprint: (contract: Contract) => void;
+  /** Begin planning phase for a new contract */
+  acceptContract: (contract: Contract) => void;
+  /** Transition from planning → active (called when planning day ends) */
+  startActivePhase: () => void;
   advanceDay: () => void;
   endSprint: () => void;
+  /** Advance to next sprint within the same contract (planning → planning) */
+  advanceContractSprint: () => void;
+  /** Close the contract and bank payout */
   collectPayout: (amount: number) => void;
   spendCash: (amount: number) => void;
   reset: () => void;
@@ -32,14 +39,17 @@ const initialState = {
 export const useSprintStore = create<SprintState>()((set) => ({
   ...initialState,
 
-  startSprint: (contract: Contract) =>
+  acceptContract: (contract: Contract) =>
     set((state) => ({
-      phase: 'active' as SprintPhase,
+      phase: 'planning',
       currentDay: 1,
       totalDays: contract.sprintDays,
       currentContract: contract,
       sprintNumber: state.sprintNumber + 1,
     })),
+
+  startActivePhase: () =>
+    set({ phase: 'active' }),
 
   advanceDay: () =>
     set((state) => ({
@@ -47,8 +57,20 @@ export const useSprintStore = create<SprintState>()((set) => ({
     })),
 
   endSprint: () =>
-    set({
-      phase: 'review',
+    set({ phase: 'review' }),
+
+  advanceContractSprint: () =>
+    set((state) => {
+      if (!state.currentContract) return state;
+      return {
+        phase: 'planning',
+        currentDay: 1,
+        currentContract: {
+          ...state.currentContract,
+          currentSprint: state.currentContract.currentSprint + 1,
+        },
+        sprintNumber: state.sprintNumber + 1,
+      };
     }),
 
   collectPayout: (amount: number) =>
