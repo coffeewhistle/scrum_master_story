@@ -16,6 +16,7 @@ interface SprintState {
   advanceDay: () => void;
   endSprint: () => void;
   collectPayout: (amount: number) => void;
+  spendCash: (amount: number) => void;
   reset: () => void;
 }
 
@@ -56,6 +57,11 @@ export const useSprintStore = create<SprintState>()((set) => ({
       phase: 'idle',
       currentContract: null,
       currentDay: 0,
+    })),
+
+  spendCash: (amount: number) =>
+    set((state) => ({
+      cashOnHand: Math.max(0, state.cashOnHand - amount),
     })),
 
   reset: () => set(initialState),

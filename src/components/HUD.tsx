@@ -9,14 +9,18 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Constants from 'expo-constants';
 import { useSprintStore } from '../stores/sprintStore';
 import { useTeamStore } from '../stores/teamStore';
 import { formatCash, formatDay, formatVelocity } from '../utils/format.utils';
 import { colors } from '../constants/theme';
 
-const HUD: React.FC = () => {
+interface HUDProps {
+  onTeamPress: () => void;
+}
+
+const HUD: React.FC<HUDProps> = ({ onTeamPress }) => {
   const { currentDay, totalDays, cashOnHand, currentContract, phase, sprintNumber } =
     useSprintStore();
   const { developers, totalVelocity } = useTeamStore();
@@ -54,17 +58,20 @@ const HUD: React.FC = () => {
         </View>
       </View>
 
-      {/* Velocity bar */}
+      {/* Bottom row: team button + velocity */}
       <View style={styles.velocityRow}>
-        <View style={styles.teamAvatars}>
-          {developers.map((dev) => (
-            <Text key={dev.id} style={styles.avatarEmoji}>{dev.avatar}</Text>
-          ))}
+        <TouchableOpacity onPress={onTeamPress} style={styles.teamBtn} activeOpacity={0.7}>
+          <View style={styles.teamAvatars}>
+            {developers.map((dev) => (
+              <Text key={dev.id} style={styles.avatarEmoji}>{dev.avatar}</Text>
+            ))}
+          </View>
+          <Text style={styles.teamBtnLabel}>👥 Team</Text>
+        </TouchableOpacity>
+        <View style={styles.velocityDisplay}>
+          <Text style={styles.velocityLabel}>Team Speed</Text>
+          <Text style={styles.velocityText}>{formatVelocity(totalVelocity)}</Text>
         </View>
-        <Text style={styles.velocityLabel}>Team Speed</Text>
-        <Text style={styles.velocityText}>
-          {formatVelocity(totalVelocity)}
-        </Text>
       </View>
     </View>
   );
@@ -118,9 +125,26 @@ const styles = StyleSheet.create({
   },
   velocityRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
     marginTop: 6,
+  },
+  teamBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.accent,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  teamBtnLabel: {
+    color: colors.textPrimary,
+    fontSize: 11,
+    fontWeight: '700',
+    marginLeft: 4,
+  },
+  velocityDisplay: {
+    alignItems: 'flex-end',
   },
   velocityLabel: {
     color: colors.textSecondary,

@@ -25,6 +25,7 @@ import KanbanBoard from '../components/KanbanBoard';
 import SprintTimer from '../components/SprintTimer';
 import SprintResultScreen from './SprintResultScreen';
 import Toast from '../components/Toast';
+import TeamDrawer from '../components/TeamDrawer';
 
 // Stores
 import { useSprintStore } from '../stores/sprintStore';
@@ -32,7 +33,7 @@ import { useBoardStore } from '../stores/boardStore';
 import { useUIStore } from '../stores/uiStore';
 
 // Engine
-import { generateContract, resetSimState, shipEarly } from '../engine/SprintSimulator';
+import { generateContract, resetSimState, shipEarly, generateCandidates } from '../engine/SprintSimulator';
 import { GameLoop } from '../engine/GameLoop';
 
 import { colors } from '../constants/theme';
@@ -45,8 +46,11 @@ const GameScreen: React.FC = () => {
   const showSprintResult = useUIStore((s) => s.showSprintResult);
   const canShipEarly = useUIStore((s) => s.canShipEarly);
 
+  const [teamDrawerOpen, setTeamDrawerOpen] = React.useState(false);
+
   // Stop game loop on unmount
   useEffect(() => {
+    generateCandidates(); // Populate job board on first load
     return () => {
       GameLoop.stop();
     };
@@ -74,7 +78,7 @@ const GameScreen: React.FC = () => {
     <GestureHandlerRootView style={styles.root}>
       <View style={styles.container}>
         {/* Fixed header */}
-        <HUD />
+        <HUD onTeamPress={() => setTeamDrawerOpen(true)} />
 
         {/* Main board area */}
         <View style={styles.boardArea}>
@@ -135,6 +139,12 @@ const GameScreen: React.FC = () => {
 
         {/* Toast notification */}
         <Toast />
+
+        {/* Team drawer */}
+        <TeamDrawer
+          visible={teamDrawerOpen}
+          onClose={() => setTeamDrawerOpen(false)}
+        />
       </View>
     </GestureHandlerRootView>
   );

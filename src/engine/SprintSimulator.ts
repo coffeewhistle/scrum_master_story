@@ -14,6 +14,7 @@
  */
 
 import type { Contract, Ticket, TicketStatus } from '../types';
+import type { DeveloperArchetype } from '../types/developer.types';
 import {
   TICKS_PER_DAY,
   BLOCKER_SPAWN_CHANCE_PER_TICK,
@@ -29,6 +30,14 @@ import {
   CONTRACT_PAYOUT_RANGE,
   CLIENT_NAMES,
 } from '../constants/tickets.constants';
+import {
+  DEVELOPER_NAMES,
+  DEVELOPER_AVATARS,
+  ARCHETYPE_VELOCITY_RANGE,
+  ARCHETYPE_COST_RANGE,
+  ARCHETYPE_TRAITS,
+  CANDIDATE_ARCHETYPE_POOL,
+} from '../constants/developer.constants';
 import { randomInt, randomPick, rollChance } from '../utils/random.utils';
 import { calculatePayout } from './PayoutCalculator';
 import { GameLoop } from './GameLoop';
@@ -104,12 +113,62 @@ export function generateContract(): Contract {
 // ─── Tick Logic ──────────────────────────────────────────────────────────────
 
 /**
+ * Generate 3 random job board candidates and push to teamStore.
+ * Called at sprint start and on initial app load.
+ */
+export function generateCandidates(): void {
+  const usedNames = new Set(
+    useTeamStore.getState().developers.map((d) => d.name),
+  );
+
+  const candidates = [];
+  const usedArchetypes: DeveloperArchetype[] = [];
+
+  for (let i = 0; i < 3; i++) {
+    // Pick an archetype from the weighted pool, avoid duplicates on the board
+    let archetype: DeveloperArchetype;
+    let attempts = 0;
+    do {
+      archetype = randomPick([...CANDIDATE_ARCHETYPE_POOL]) as DeveloperArchetype;
+      attempts++;
+    } while (usedArchetypes.includes(archetype) && attempts < 10);
+    usedArchetypes.push(archetype);
+
+    // Pick a name not already on the team
+    const namePool = DEVELOPER_NAMES[archetype].filter((n) => !usedNames.has(n));
+    const name =
+      namePool.length > 0
+        ? randomPick(namePool)
+        : randomPick(DEVELOPER_NAMES[archetype]);
+    usedNames.add(name);
+
+    const [vMin, vMax] = ARCHETYPE_VELOCITY_RANGE[archetype];
+    const [cMin, cMax] = ARCHETYPE_COST_RANGE[archetype];
+    const velocity =
+      Math.round((vMin + Math.random() * (vMax - vMin)) * 10) / 10;
+
+    candidates.push({
+      id: uuid(),
+      name,
+      archetype,
+      velocity,
+      avatar: DEVELOPER_AVATARS[archetype],
+      trait: ARCHETYPE_TRAITS[archetype],
+      hireCost: randomInt(cMin, cMax),
+    });
+  }
+
+  useTeamStore.getState().refreshCandidates(candidates);
+}
+
+/**
  * Reset per-sprint internal counters. Call when a new sprint begins.
  */
 export function resetSimState(): void {
   ticksThisDay = 0;
   blockersSmashed = 0;
   useUIStore.getState().setCanShipEarly(false);
+  generateCandidates(); // Refresh job board each sprint
 }
 
 /**
@@ -202,9 +261,16 @@ export function tick(): void {
     (t) => t.type === 'story' && t.status !== 'done',
   );
 
+  // QA engineers reduce blocker spawn rate via their blockerRateReduction trait
+  const qaReduction = useTeamStore.getState().developers.reduce(
+    (sum, d) => sum + (d.trait?.blockerRateReduction ?? 0),
+    0,
+  );
+  const effectiveBlockerRate = BLOCKER_SPAWN_CHANCE_PER_TICK * Math.max(0, 1 - qaReduction);
+
   if (
     hasIncompleteWork &&
-    rollChance(BLOCKER_SPAWN_CHANCE_PER_TICK) &&
+    rollChance(effectiveBlockerRate) &&
     currentActiveBlockers < MAX_ACTIVE_BLOCKERS
   ) {
     const blockerTicket: Ticket = {
