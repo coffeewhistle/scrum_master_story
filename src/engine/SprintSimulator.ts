@@ -31,6 +31,7 @@ import {
 } from '../constants/tickets.constants';
 import { randomInt, randomPick, rollChance } from '../utils/random.utils';
 import { calculatePayout } from './PayoutCalculator';
+import { GameLoop } from './GameLoop';
 
 // Lazy-imported store accessors.
 // The actual Zustand stores are created by the stores agent; we import them
@@ -207,6 +208,7 @@ export function tick(): void {
 
       // Transition to review phase first (stops the game loop).
       useSprintStore.getState().endSprint();
+      GameLoop.stop();
 
       if (contract) {
         const result = calculatePayout(contract, finalTickets, blockersSmashed);

@@ -13,6 +13,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useSprintStore } from '../stores/sprintStore';
 import { useTeamStore } from '../stores/teamStore';
 import { formatCash, formatDay, formatVelocity } from '../utils/format.utils';
+import { colors } from '../constants/theme';
 
 const HUD: React.FC = () => {
   const { currentDay, totalDays, cashOnHand, currentContract, phase } =
@@ -61,12 +62,12 @@ const HUD: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.bgPrimary,
     paddingTop: 48, // account for status bar
     paddingHorizontal: 16,
     paddingBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#0f3460',
+    borderBottomColor: colors.accent,
   },
   mainRow: {
     flexDirection: 'row',
@@ -83,7 +84,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   label: {
-    color: '#a0a0a0',
+    color: colors.textSecondary,
     fontSize: 10,
     fontWeight: '600',
     textTransform: 'uppercase',
@@ -91,17 +92,17 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   value: {
-    color: '#ffffff',
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '700',
   },
   clientName: {
-    color: '#ffffff',
+    color: colors.textPrimary,
     fontSize: 14,
     fontWeight: '700',
   },
   cashValue: {
-    color: '#4ecca3',
+    color: colors.success,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -116,7 +117,7 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   velocityText: {
-    color: '#a0a0a0',
+    color: colors.textSecondary,
     fontSize: 12,
     fontWeight: '500',
   },

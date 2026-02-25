@@ -21,6 +21,7 @@ import Animated, {
 import type { Ticket } from '../types';
 import { useBoardStore } from '../stores/boardStore';
 import { recordBlockerSmash } from '../engine/SprintSimulator';
+import { colors } from '../constants/theme';
 
 interface BlockerCardProps {
   ticket: Ticket;
@@ -123,13 +124,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   card: {
-    backgroundColor: '#8b0000',
+    backgroundColor: colors.blockerBg,
     borderRadius: 8,
     padding: 12,
     borderLeftWidth: 4,
-    borderLeftColor: '#e94560',
+    borderLeftColor: colors.danger,
     // Shadow
-    shadowColor: '#e94560',
+    shadowColor: colors.danger,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
     shadowRadius: 6,
@@ -145,31 +146,31 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   blockerBadge: {
-    backgroundColor: '#e94560',
+    backgroundColor: colors.danger,
     borderRadius: 4,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
   blockerBadgeText: {
-    color: '#ffffff',
+    color: colors.textPrimary,
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 1.5,
   },
   title: {
-    color: '#ffffff',
+    color: colors.textPrimary,
     fontSize: 13,
     fontWeight: '600',
     marginBottom: 10,
   },
   smashButton: {
-    backgroundColor: '#e94560',
+    backgroundColor: colors.danger,
     borderRadius: 6,
     paddingVertical: 10,
     alignItems: 'center',
   },
   smashButtonText: {
-    color: '#ffffff',
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '900',
     letterSpacing: 1,

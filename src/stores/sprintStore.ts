@@ -45,13 +45,14 @@ export const useSprintStore = create<SprintState>()((set) => ({
   endSprint: () =>
     set({
       phase: 'review',
-      currentContract: null,
     }),
 
   collectPayout: (amount: number) =>
     set((state) => ({
       cashOnHand: state.cashOnHand + amount,
       phase: 'idle',
+      currentContract: null,
+      currentDay: 0,
     })),
 
   reset: () => set(initialState),

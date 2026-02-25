@@ -27,14 +27,15 @@ import { useSprintStore } from '../stores/sprintStore';
 import { useBoardStore } from '../stores/boardStore';
 import { formatCash } from '../utils/format.utils';
 import type { SprintGrade } from '../types';
+import { colors } from '../constants/theme';
 
 /** Grade → color mapping */
 const GRADE_COLORS: Record<SprintGrade, string> = {
-  S: '#ffd700', // gold
-  A: '#4ecca3', // green
-  B: '#3498db', // blue
-  C: '#e67e22', // orange
-  F: '#e94560', // red
+  S: colors.gold,
+  A: colors.success,
+  B: colors.info,
+  C: colors.warning,
+  F: colors.danger,
 };
 
 /** Grade → flavor text */
@@ -116,6 +117,10 @@ const SprintResultScreen: React.FC = () => {
               value={`${result.ticketsCompleted} / ${result.ticketsTotal}`}
             />
             <StatRow
+              label="Story Points"
+              value={`${result.pointsCompleted} / ${result.pointsTotal} pts`}
+            />
+            <StatRow
               label="Blockers Smashed"
               value={`${result.blockersSmashed}`}
               icon="💥"
@@ -130,13 +135,13 @@ const SprintResultScreen: React.FC = () => {
             <StatRow
               label="Cash Earned"
               value={formatCash(result.cashEarned)}
-              valueColor="#4ecca3"
+              valueColor={colors.success}
             />
             {result.bonusEarned > 0 && (
               <StatRow
                 label="Perfect Bonus"
                 value={`+ ${formatCash(result.bonusEarned)}`}
-                valueColor="#ffd700"
+                valueColor={colors.gold}
                 icon="⭐"
               />
             )}
@@ -174,7 +179,7 @@ const StatRow: React.FC<StatRowProps> = ({
   label,
   value,
   icon,
-  valueColor = '#ffffff',
+  valueColor = colors.textPrimary,
 }) => (
   <View style={styles.statRow}>
     <Text style={styles.statLabel}>
@@ -188,13 +193,13 @@ const StatRow: React.FC<StatRowProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: colors.overlayBg,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
   card: {
-    backgroundColor: '#16213e',
+    backgroundColor: colors.bgCard,
     borderRadius: 16,
     padding: 28,
     width: '100%',
@@ -207,17 +212,17 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 10,
     borderWidth: 1,
-    borderColor: '#0f3460',
+    borderColor: colors.accent,
   },
   gradeContainer: {
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.bgPrimary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: '#0f3460',
+    borderColor: colors.accent,
     marginBottom: 8,
   },
   gradeLetter: {
@@ -232,7 +237,7 @@ const styles = StyleSheet.create({
   divider: {
     width: '100%',
     height: 1,
-    backgroundColor: '#0f3460',
+    backgroundColor: colors.accent,
     marginVertical: 16,
   },
   statsContainer: {
@@ -245,11 +250,11 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   statLabel: {
-    color: '#a0a0a0',
+    color: colors.textSecondary,
     fontSize: 14,
   },
   statValue: {
-    color: '#ffffff',
+    color: colors.textPrimary,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -263,16 +268,16 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     marginTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#0f3460',
+    borderTopColor: colors.accent,
   },
   totalLabel: {
-    color: '#ffffff',
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '900',
     letterSpacing: 1,
   },
   totalValue: {
-    color: '#4ecca3',
+    color: colors.success,
     fontSize: 20,
     fontWeight: '900',
   },
@@ -285,7 +290,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   collectButtonText: {
-    color: '#1a1a2e',
+    color: colors.textDark,
     fontSize: 16,
     fontWeight: '900',
   },

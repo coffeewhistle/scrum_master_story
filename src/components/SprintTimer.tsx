@@ -16,6 +16,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSprintStore } from '../stores/sprintStore';
 import { formatDay } from '../utils/format.utils';
+import { colors } from '../constants/theme';
 
 const SprintTimer: React.FC = () => {
   const { currentDay, totalDays } = useSprintStore();
@@ -35,9 +36,9 @@ const SprintTimer: React.FC = () => {
 
   // Color based on progress ratio: green → yellow → red
   const getBarColor = (): string => {
-    if (progress <= 0.4) return '#4ecca3'; // green - early
-    if (progress <= 0.7) return '#f0c040'; // yellow - mid
-    return '#e94560'; // red - late
+    if (progress <= 0.4) return colors.success; // green - early
+    if (progress <= 0.7) return colors.yellow;  // yellow - mid
+    return colors.danger;                        // red - late
   };
 
   const barColor = getBarColor();
@@ -67,9 +68,9 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.bgPrimary,
     borderTopWidth: 1,
-    borderTopColor: '#0f3460',
+    borderTopColor: colors.accent,
   },
   labelRow: {
     flexDirection: 'row',
@@ -77,18 +78,18 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   dayText: {
-    color: '#ffffff',
+    color: colors.textPrimary,
     fontSize: 14,
     fontWeight: '700',
   },
   percentText: {
-    color: '#a0a0a0',
+    color: colors.textSecondary,
     fontSize: 12,
     fontWeight: '500',
   },
   track: {
     height: 8,
-    backgroundColor: '#2a2a4a',
+    backgroundColor: colors.bgTrack,
     borderRadius: 4,
     overflow: 'hidden',
   },

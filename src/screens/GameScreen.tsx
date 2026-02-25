@@ -14,7 +14,7 @@
  *   review → Shows <SprintResultScreen /> as a modal overlay.
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
@@ -34,11 +34,23 @@ import { useUIStore } from '../stores/uiStore';
 import { generateContract, resetSimState } from '../engine/SprintSimulator';
 import { GameLoop } from '../engine/GameLoop';
 
+import { colors } from '../constants/theme';
+
 const GameScreen: React.FC = () => {
   const phase = useSprintStore((s) => s.phase);
   const showSprintResult = useUIStore((s) => s.showSprintResult);
 
+  // Stop game loop on unmount
+  useEffect(() => {
+    return () => {
+      GameLoop.stop();
+    };
+  }, []);
+
   const handleStartSprint = useCallback(() => {
+    // Guard: only start from idle phase
+    if (useSprintStore.getState().phase !== 'idle') return;
+
     // Generate a new contract with random tickets
     const contract = generateContract();
 
@@ -102,7 +114,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: colors.bgPrimary,
   },
   boardArea: {
     flex: 1,
@@ -118,12 +130,12 @@ const styles = StyleSheet.create({
   startButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#e94560',
+    backgroundColor: colors.danger,
     paddingVertical: 14,
     paddingHorizontal: 32,
     borderRadius: 12,
     // Shadow
-    shadowColor: '#e94560',
+    shadowColor: colors.danger,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
@@ -134,13 +146,13 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   startButtonText: {
-    color: '#ffffff',
+    color: colors.textPrimary,
     fontSize: 18,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   idleHint: {
-    color: '#a0a0a0',
+    color: colors.textSecondary,
     fontSize: 12,
     marginTop: 8,
   },

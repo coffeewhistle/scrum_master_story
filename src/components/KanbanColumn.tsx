@@ -13,6 +13,7 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import type { Ticket, TicketStatus } from '../types';
 import TicketCard from './TicketCard';
 import BlockerCard from './BlockerCard';
+import { colors } from '../constants/theme';
 
 interface KanbanColumnProps {
   title: string;
@@ -22,9 +23,9 @@ interface KanbanColumnProps {
 
 /** Header accent color per column status */
 const COLUMN_COLORS: Record<TicketStatus, string> = {
-  todo: '#3498db',   // blue
-  doing: '#e67e22',  // orange
-  done: '#4ecca3',   // green
+  todo: colors.info,
+  doing: colors.warning,
+  done: colors.success,
 };
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({
@@ -93,7 +94,7 @@ const styles = StyleSheet.create({
   column: {
     flex: 1,
     marginHorizontal: 2,
-    backgroundColor: '#12122a',
+    backgroundColor: colors.bgSecondary,
     borderRadius: 8,
     overflow: 'hidden',
   },
@@ -105,7 +106,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   headerTitle: {
-    color: '#ffffff',
+    color: colors.textPrimary,
     fontSize: 12,
     fontWeight: '800',
     textTransform: 'uppercase',
@@ -120,7 +121,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   countText: {
-    color: '#ffffff',
+    color: colors.textPrimary,
     fontSize: 11,
     fontWeight: '700',
   },
@@ -137,7 +138,7 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
   },
   emptyText: {
-    color: '#a0a0a0',
+    color: colors.textSecondary,
     fontSize: 11,
     fontStyle: 'italic',
   },

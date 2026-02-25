@@ -17,6 +17,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import type { Ticket } from '../types';
 import { useBoardStore } from '../stores/boardStore';
+import { colors } from '../constants/theme';
 
 interface TicketCardProps {
   ticket: Ticket;
@@ -111,7 +112,7 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#16213e',
+    backgroundColor: colors.bgCard,
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
@@ -123,11 +124,11 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
     borderLeftWidth: 3,
-    borderLeftColor: '#0f3460',
+    borderLeftColor: colors.accent,
   },
   cardDone: {
     opacity: 0.6,
-    borderLeftColor: '#4ecca3',
+    borderLeftColor: colors.success,
   },
   header: {
     flexDirection: 'row',
@@ -135,18 +136,18 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   title: {
-    color: '#ffffff',
+    color: colors.textPrimary,
     fontSize: 13,
     fontWeight: '600',
     flex: 1,
     marginRight: 8,
   },
   titleDone: {
-    color: '#a0a0a0',
+    color: colors.textSecondary,
     textDecorationLine: 'line-through',
   },
   pointsBadge: {
-    backgroundColor: '#0f3460',
+    backgroundColor: colors.accent,
     borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -154,7 +155,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pointsText: {
-    color: '#ffffff',
+    color: colors.textPrimary,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -163,7 +164,7 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     height: 6,
-    backgroundColor: '#2a2a4a',
+    backgroundColor: colors.bgTrack,
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -172,31 +173,31 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   progressFillActive: {
-    backgroundColor: '#e94560',
+    backgroundColor: colors.danger,
   },
   progressFillDone: {
-    backgroundColor: '#4ecca3',
+    backgroundColor: colors.success,
   },
   progressLabel: {
-    color: '#a0a0a0',
+    color: colors.textSecondary,
     fontSize: 10,
     marginTop: 4,
     textAlign: 'right',
   },
   todoPoints: {
-    color: '#a0a0a0',
+    color: colors.textSecondary,
     fontSize: 11,
     marginTop: 6,
   },
   startButton: {
-    backgroundColor: '#0f3460',
+    backgroundColor: colors.accent,
     borderRadius: 6,
     paddingVertical: 8,
     alignItems: 'center',
     marginTop: 8,
   },
   startButtonText: {
-    color: '#ffffff',
+    color: colors.textPrimary,
     fontSize: 13,
     fontWeight: '700',
   },

@@ -8,6 +8,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { Developer } from '../types';
+import { colors } from '../constants/theme';
 
 interface DevAvatarProps {
   developer: Developer;
@@ -37,24 +38,24 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#0f3460',
+    backgroundColor: colors.accent,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#e94560',
+    borderColor: colors.danger,
   },
   avatarEmoji: {
     fontSize: 22,
   },
   name: {
-    color: '#ffffff',
+    color: colors.textPrimary,
     fontSize: 10,
     fontWeight: '600',
     marginTop: 4,
     textAlign: 'center',
   },
   velocity: {
-    color: '#a0a0a0',
+    color: colors.textSecondary,
     fontSize: 9,
     marginTop: 1,
   },

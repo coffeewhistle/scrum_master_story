@@ -38,6 +38,10 @@ export interface SprintResult {
   ticketsCompleted: number;
   /** Total tickets in the sprint (stories only, not counting blockers) */
   ticketsTotal: number;
+  /** Total story points completed */
+  pointsCompleted: number;
+  /** Total story points in the sprint */
+  pointsTotal: number;
   /** Number of blockers the player tapped to smash */
   blockersSmashed: number;
   /** Cash earned from base payout * completion ratio */

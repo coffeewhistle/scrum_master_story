@@ -41,21 +41,25 @@ export function calculatePayout(
 ): SprintResult {
   // Only story tickets count toward completion metrics.
   const storyTickets = tickets.filter((t) => t.type === 'story');
-  const totalStories = storyTickets.length;
-  const completedStories = storyTickets.filter((t) => t.status === 'done').length;
+  const totalPoints = storyTickets.reduce((sum, t) => sum + t.storyPoints, 0);
+  const completedPoints = storyTickets
+    .filter((t) => t.status === 'done')
+    .reduce((sum, t) => sum + t.storyPoints, 0);
 
   // Guard against divide-by-zero (shouldn't happen in practice).
-  const completionRatio = totalStories > 0 ? completedStories / totalStories : 0;
+  const completionRatio = totalPoints > 0 ? completedPoints / totalPoints : 0;
 
   const cashEarned = contract.payout * completionRatio;
   const bonusEarned =
-    completionRatio === 1.0 ? cashEarned * PERFECT_COMPLETION_BONUS : 0;
+    completionRatio >= 1.0 ? cashEarned * PERFECT_COMPLETION_BONUS : 0;
 
   const grade = gradeFromRatio(completionRatio);
 
   return {
-    ticketsCompleted: completedStories,
-    ticketsTotal: totalStories,
+    ticketsCompleted: storyTickets.filter((t) => t.status === 'done').length,
+    ticketsTotal: storyTickets.length,
+    pointsCompleted: completedPoints,
+    pointsTotal: totalPoints,
     blockersSmashed,
     cashEarned,
     bonusEarned,
