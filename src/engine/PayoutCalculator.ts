@@ -16,13 +16,15 @@ import { PERFECT_COMPLETION_BONUS, GRADE_THRESHOLDS } from '../constants/game.co
  *   A  >= 80%
  *   B  >= 60%
  *   C  >= 40%
- *   F  <  40%
+ *   D  >= 20%
+ *   F  <  20%
  */
 function gradeFromRatio(ratio: number): SprintGrade {
   if (ratio >= GRADE_THRESHOLDS.S) return 'S';
   if (ratio >= GRADE_THRESHOLDS.A) return 'A';
   if (ratio >= GRADE_THRESHOLDS.B) return 'B';
   if (ratio >= GRADE_THRESHOLDS.C) return 'C';
+  if (ratio >= GRADE_THRESHOLDS.D) return 'D';
   return 'F';
 }
 

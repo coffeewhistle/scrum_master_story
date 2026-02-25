@@ -43,7 +43,7 @@ const BlockerCard: React.FC<BlockerCardProps> = ({ ticket }) => {
   React.useEffect(() => {
     pulseScale.value = withRepeat(
       withSequence(
-        withTiming(1.03, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1.06, { duration: 600, easing: Easing.inOut(Easing.ease) }),
         withTiming(1.0, { duration: 600, easing: Easing.inOut(Easing.ease) }),
       ),
       -1, // infinite
@@ -51,7 +51,7 @@ const BlockerCard: React.FC<BlockerCardProps> = ({ ticket }) => {
     );
     pulseOpacity.value = withRepeat(
       withSequence(
-        withTiming(0.85, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0.7, { duration: 600, easing: Easing.inOut(Easing.ease) }),
         withTiming(1.0, { duration: 600, easing: Easing.inOut(Easing.ease) }),
       ),
       -1,
@@ -107,9 +107,10 @@ const BlockerCard: React.FC<BlockerCardProps> = ({ ticket }) => {
 
         {/* SMASH button */}
         <TouchableOpacity
-          style={styles.smashButton}
+          style={[styles.smashButton, smashing && styles.smashButtonDisabled]}
           onPress={handleSmash}
           activeOpacity={0.7}
+          disabled={smashing}
         >
           <Text style={styles.smashButtonText}>💥 SMASH!</Text>
         </TouchableOpacity>
@@ -168,6 +169,10 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     paddingVertical: 10,
     alignItems: 'center',
+  },
+  smashButtonDisabled: {
+    backgroundColor: colors.textSecondary,
+    opacity: 0.5,
   },
   smashButtonText: {
     color: colors.textPrimary,

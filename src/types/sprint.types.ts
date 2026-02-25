@@ -28,7 +28,7 @@ export interface Contract {
 }
 
 /** Performance grade based on completion percentage */
-export type SprintGrade = 'S' | 'A' | 'B' | 'C' | 'F';
+export type SprintGrade = 'S' | 'A' | 'B' | 'C' | 'D' | 'F';
 
 /**
  * Summary of sprint performance shown on the review screen.
@@ -48,6 +48,6 @@ export interface SprintResult {
   cashEarned: number;
   /** Extra cash from perfect completion bonus */
   bonusEarned: number;
-  /** Letter grade: S(100%), A(80%+), B(60%+), C(40%+), F(<40%) */
+  /** Letter grade: S(100%), A(80%+), B(60%+), C(40%+), D(20%+), F(<20%) */
   grade: SprintGrade;
 }

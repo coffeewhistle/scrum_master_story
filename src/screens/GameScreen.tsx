@@ -104,7 +104,7 @@ const GameScreen: React.FC = () => {
             </Animated.View>
           )}
 
-          {(phase === 'active' || phase === 'planning') && <SprintTimer />}
+          {phase === 'active' && <SprintTimer />}
         </View>
 
         {/* Sprint result modal overlay */}

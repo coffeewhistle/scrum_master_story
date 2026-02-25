@@ -10,6 +10,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import Constants from 'expo-constants';
 import { useSprintStore } from '../stores/sprintStore';
 import { useTeamStore } from '../stores/teamStore';
 import { formatCash, formatDay, formatVelocity } from '../utils/format.utils';
@@ -18,7 +19,7 @@ import { colors } from '../constants/theme';
 const HUD: React.FC = () => {
   const { currentDay, totalDays, cashOnHand, currentContract, phase, sprintNumber } =
     useSprintStore();
-  const { totalVelocity } = useTeamStore();
+  const { developers, totalVelocity } = useTeamStore();
 
   const clientLabel =
     currentContract?.clientName ?? (phase === 'idle' ? 'No Contract' : '—');
@@ -55,6 +56,11 @@ const HUD: React.FC = () => {
 
       {/* Velocity bar */}
       <View style={styles.velocityRow}>
+        <View style={styles.teamAvatars}>
+          {developers.map((dev) => (
+            <Text key={dev.id} style={styles.avatarEmoji}>{dev.avatar}</Text>
+          ))}
+        </View>
         <Text style={styles.velocityLabel}>Team Speed</Text>
         <Text style={styles.velocityText}>
           {formatVelocity(totalVelocity)}
@@ -67,7 +73,7 @@ const HUD: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: colors.bgPrimary,
-    paddingTop: 48, // account for status bar
+    paddingTop: (Constants.statusBarHeight ?? 48) + 8,
     paddingHorizontal: 16,
     paddingBottom: 8,
     borderBottomWidth: 1,
@@ -128,6 +134,14 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 12,
     fontWeight: '500',
+  },
+  teamAvatars: {
+    flexDirection: 'row',
+    marginRight: 8,
+  },
+  avatarEmoji: {
+    fontSize: 16,
+    marginRight: 2,
   },
 });
 

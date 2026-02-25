@@ -35,6 +35,7 @@ const GRADE_COLORS: Record<SprintGrade, string> = {
   A: colors.success,
   B: colors.info,
   C: colors.warning,
+  D: '#c0392b',
   F: colors.danger,
 };
 
@@ -44,6 +45,7 @@ const GRADE_LABELS: Record<SprintGrade, string> = {
   A: 'Great Work!',
   B: 'Solid Effort',
   C: 'Needs Improvement',
+  D: 'Rough Sprint',
   F: 'Sprint Failed',
 };
 
@@ -107,7 +109,7 @@ const SprintResultScreen: React.FC = () => {
           <Text style={[styles.gradeLabel, { color: gradeColor }]}>
             {gradeLabel}
           </Text>
-          {(result.grade === 'C' || result.grade === 'F') && (
+          {(result.grade === 'C' || result.grade === 'D' || result.grade === 'F') && (
             <Text style={styles.gradeHint}>
               Tip: Start more tickets and smash blockers quickly!
             </Text>

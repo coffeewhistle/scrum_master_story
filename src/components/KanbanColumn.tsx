@@ -14,6 +14,7 @@ import type { Ticket, TicketStatus } from '../types';
 import TicketCard from './TicketCard';
 import BlockerCard from './BlockerCard';
 import { colors } from '../constants/theme';
+import { useSprintStore } from '../stores/sprintStore';
 
 interface KanbanColumnProps {
   title: string;
@@ -36,15 +37,13 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
   isBlocked,
 }) => {
   const accentColor = COLUMN_COLORS[status];
+  const phase = useSprintStore((s) => s.phase);
 
   // Separate active blockers (shown at top) from story tickets
   const activeBlockers = tickets.filter(
     (t) => t.type === 'blocker' && t.status !== 'done',
   );
   const storyTickets = tickets.filter((t) => t.type === 'story');
-  const doneBlockers = tickets.filter(
-    (t) => t.type === 'blocker' && t.status === 'done',
-  );
 
   const visibleCount =
     storyTickets.length + activeBlockers.length;
@@ -87,10 +86,12 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>
               {status === 'todo'
-                ? 'No tickets yet'
+                ? phase === 'idle'
+                  ? 'Start a sprint to get tickets!'
+                  : 'All tickets assigned!'
                 : status === 'doing'
-                ? 'Move tickets here'
-                : 'Complete work!'}
+                ? 'Tap "Start Work" on a To Do ticket'
+                : 'Stories appear here when complete'}
             </Text>
           </View>
         )}
