@@ -1,0 +1,149 @@
+/**
+ * GameScreen — Primary game screen that orchestrates all UI components.
+ *
+ * Layout (top to bottom):
+ *   1. <HUD />            — fixed header with day counter, client, cash
+ *   2. <KanbanBoard />    — three-column board filling available space
+ *   3. Bottom bar         — "Start Sprint" (idle) or <SprintTimer /> (active)
+ *
+ * Sprint lifecycle:
+ *   idle   → Shows "Start Sprint" button. Tapping generates a contract,
+ *            populates the board, and starts the game loop.
+ *   active → Shows the sprint timer. Board is interactive (move tickets,
+ *            smash blockers). Engine ticks auto-progress work.
+ *   review → Shows <SprintResultScreen /> as a modal overlay.
+ */
+
+import React, { useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+
+// Components
+import HUD from '../components/HUD';
+import KanbanBoard from '../components/KanbanBoard';
+import SprintTimer from '../components/SprintTimer';
+import SprintResultScreen from './SprintResultScreen';
+
+// Stores
+import { useSprintStore } from '../stores/sprintStore';
+import { useBoardStore } from '../stores/boardStore';
+import { useUIStore } from '../stores/uiStore';
+
+// Engine
+import { generateContract, resetSimState } from '../engine/SprintSimulator';
+import { GameLoop } from '../engine/GameLoop';
+
+const GameScreen: React.FC = () => {
+  const phase = useSprintStore((s) => s.phase);
+  const showSprintResult = useUIStore((s) => s.showSprintResult);
+
+  const handleStartSprint = useCallback(() => {
+    // Generate a new contract with random tickets
+    const contract = generateContract();
+
+    // Populate the board with the contract's tickets
+    useBoardStore.getState().addTickets(contract.tickets);
+
+    // Start the sprint in the store
+    useSprintStore.getState().startSprint(contract);
+
+    // Reset simulation counters and start the game loop
+    resetSimState();
+    GameLoop.start();
+  }, []);
+
+  return (
+    <GestureHandlerRootView style={styles.root}>
+      <View style={styles.container}>
+        {/* Fixed header */}
+        <HUD />
+
+        {/* Main board area */}
+        <View style={styles.boardArea}>
+          <KanbanBoard />
+        </View>
+
+        {/* Bottom bar */}
+        <View style={styles.bottomBar}>
+          {phase === 'idle' && (
+            <Animated.View
+              entering={FadeIn.duration(300)}
+              exiting={FadeOut.duration(200)}
+              style={styles.startContainer}
+            >
+              <TouchableOpacity
+                style={styles.startButton}
+                onPress={handleStartSprint}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.startButtonEmoji}>🚀</Text>
+                <Text style={styles.startButtonText}>Start Sprint</Text>
+              </TouchableOpacity>
+              <Text style={styles.idleHint}>
+                Accept a new contract and start working!
+              </Text>
+            </Animated.View>
+          )}
+
+          {(phase === 'active' || phase === 'planning') && <SprintTimer />}
+        </View>
+
+        {/* Sprint result modal overlay */}
+        {showSprintResult && <SprintResultScreen />}
+      </View>
+    </GestureHandlerRootView>
+  );
+};
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: '#1a1a2e',
+  },
+  boardArea: {
+    flex: 1,
+  },
+  bottomBar: {
+    minHeight: 60,
+  },
+  startContainer: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+  },
+  startButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e94560',
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    // Shadow
+    shadowColor: '#e94560',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  startButtonEmoji: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  startButtonText: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  idleHint: {
+    color: '#a0a0a0',
+    fontSize: 12,
+    marginTop: 8,
+  },
+});
+
+export default GameScreen;

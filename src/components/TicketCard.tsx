@@ -1,0 +1,205 @@
+/**
+ * TicketCard — Renders a single story ticket on the Kanban board.
+ *
+ * Visual states:
+ *   todo:  White card with a "Start Work" button to move to doing.
+ *   doing: White card with an animated progress bar.
+ *   done:  Faded card with a green checkmark.
+ */
+
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  useDerivedValue,
+} from 'react-native-reanimated';
+import type { Ticket } from '../types';
+import { useBoardStore } from '../stores/boardStore';
+
+interface TicketCardProps {
+  ticket: Ticket;
+}
+
+const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
+  const moveTicket = useBoardStore((s) => s.moveTicket);
+
+  const isDone = ticket.status === 'done';
+  const isTodo = ticket.status === 'todo';
+  const isDoing = ticket.status === 'doing';
+
+  // Progress ratio for the bar
+  const progressRatio =
+    ticket.storyPoints > 0
+      ? Math.min(ticket.pointsCompleted / ticket.storyPoints, 1)
+      : 0;
+
+  // Animated progress bar width using reanimated
+  const animatedProgress = useSharedValue(progressRatio);
+
+  // Update animated value when ticket progress changes
+  React.useEffect(() => {
+    animatedProgress.value = withSpring(progressRatio, {
+      damping: 15,
+      stiffness: 120,
+    });
+  }, [progressRatio]);
+
+  const progressBarStyle = useAnimatedStyle(() => ({
+    width: `${animatedProgress.value * 100}%` as any,
+  }));
+
+  const handleStartWork = () => {
+    moveTicket(ticket.id, 'doing');
+  };
+
+  return (
+    <View style={[styles.card, isDone && styles.cardDone]}>
+      {/* Header row: title + story points badge */}
+      <View style={styles.header}>
+        <Text
+          style={[styles.title, isDone && styles.titleDone]}
+          numberOfLines={2}
+        >
+          {isDone && '✅ '}
+          {ticket.title}
+        </Text>
+        <View style={styles.pointsBadge}>
+          <Text style={styles.pointsText}>{ticket.storyPoints}</Text>
+        </View>
+      </View>
+
+      {/* Progress bar (doing & done states) */}
+      {(isDoing || isDone) && (
+        <View style={styles.progressContainer}>
+          <View style={styles.progressTrack}>
+            <Animated.View
+              style={[
+                styles.progressFill,
+                isDone ? styles.progressFillDone : styles.progressFillActive,
+                progressBarStyle,
+              ]}
+            />
+          </View>
+          <Text style={styles.progressLabel}>
+            {ticket.pointsCompleted.toFixed(1)} / {ticket.storyPoints} pts
+          </Text>
+        </View>
+      )}
+
+      {/* Story point display for todo */}
+      {isTodo && (
+        <Text style={styles.todoPoints}>
+          {ticket.storyPoints} story points
+        </Text>
+      )}
+
+      {/* Start Work button for todo tickets */}
+      {isTodo && (
+        <TouchableOpacity
+          style={styles.startButton}
+          onPress={handleStartWork}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.startButtonText}>▶ Start Work</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: '#16213e',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+    marginHorizontal: 4,
+    // Shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+    borderLeftWidth: 3,
+    borderLeftColor: '#0f3460',
+  },
+  cardDone: {
+    opacity: 0.6,
+    borderLeftColor: '#4ecca3',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  title: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '600',
+    flex: 1,
+    marginRight: 8,
+  },
+  titleDone: {
+    color: '#a0a0a0',
+    textDecorationLine: 'line-through',
+  },
+  pointsBadge: {
+    backgroundColor: '#0f3460',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    minWidth: 28,
+    alignItems: 'center',
+  },
+  pointsText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  progressContainer: {
+    marginTop: 8,
+  },
+  progressTrack: {
+    height: 6,
+    backgroundColor: '#2a2a4a',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  progressFillActive: {
+    backgroundColor: '#e94560',
+  },
+  progressFillDone: {
+    backgroundColor: '#4ecca3',
+  },
+  progressLabel: {
+    color: '#a0a0a0',
+    fontSize: 10,
+    marginTop: 4,
+    textAlign: 'right',
+  },
+  todoPoints: {
+    color: '#a0a0a0',
+    fontSize: 11,
+    marginTop: 6,
+  },
+  startButton: {
+    backgroundColor: '#0f3460',
+    borderRadius: 6,
+    paddingVertical: 8,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  startButtonText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+});
+
+export default TicketCard;
