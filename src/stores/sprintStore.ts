@@ -9,6 +9,7 @@ interface SprintState {
   totalDays: number;
   cashOnHand: number;
   currentContract: Contract | null;
+  sprintNumber: number;
 
   // Actions
   startSprint: (contract: Contract) => void;
@@ -24,18 +25,20 @@ const initialState = {
   totalDays: DEFAULT_SPRINT_DAYS,
   cashOnHand: STARTING_CASH,
   currentContract: null as Contract | null,
+  sprintNumber: 0,
 };
 
 export const useSprintStore = create<SprintState>()((set) => ({
   ...initialState,
 
   startSprint: (contract: Contract) =>
-    set({
-      phase: 'active',
+    set((state) => ({
+      phase: 'active' as SprintPhase,
       currentDay: 1,
       totalDays: contract.sprintDays,
       currentContract: contract,
-    }),
+      sprintNumber: state.sprintNumber + 1,
+    })),
 
   advanceDay: () =>
     set((state) => ({

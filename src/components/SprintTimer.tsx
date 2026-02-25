@@ -13,6 +13,8 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   interpolateColor,
+  withRepeat,
+  withSequence,
 } from 'react-native-reanimated';
 import { useSprintStore } from '../stores/sprintStore';
 import { formatDay } from '../utils/format.utils';
@@ -30,21 +32,39 @@ const SprintTimer: React.FC = () => {
     animatedProgress.value = withTiming(progress, { duration: 400 });
   }, [progress]);
 
-  const progressBarStyle = useAnimatedStyle(() => ({
+  const barColorStyle = useAnimatedStyle(() => ({
     width: `${animatedProgress.value * 100}%` as any,
+    backgroundColor: interpolateColor(
+      animatedProgress.value,
+      [0, 0.5, 1],
+      [colors.success, colors.yellow, colors.danger],
+    ),
   }));
 
-  // Color based on progress ratio: green → yellow → red
-  const getBarColor = (): string => {
-    if (progress <= 0.4) return colors.success; // green - early
-    if (progress <= 0.7) return colors.yellow;  // yellow - mid
-    return colors.danger;                        // red - late
-  };
+  // Pulse the container when sprint is in the final 30%
+  const pulseOpacity = useSharedValue(1);
 
-  const barColor = getBarColor();
+  React.useEffect(() => {
+    if (progress > 0.7) {
+      pulseOpacity.value = withRepeat(
+        withSequence(
+          withTiming(0.6, { duration: 400 }),
+          withTiming(1, { duration: 400 }),
+        ),
+        -1,
+        true,
+      );
+    } else {
+      pulseOpacity.value = 1;
+    }
+  }, [progress]);
+
+  const containerAnimStyle = useAnimatedStyle(() => ({
+    opacity: pulseOpacity.value,
+  }));
 
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, containerAnimStyle]}>
       <View style={styles.labelRow}>
         <Text style={styles.dayText}>{formatDay(currentDay, totalDays)}</Text>
         <Text style={styles.percentText}>
@@ -55,12 +75,11 @@ const SprintTimer: React.FC = () => {
         <Animated.View
           style={[
             styles.fill,
-            { backgroundColor: barColor },
-            progressBarStyle,
+            barColorStyle,
           ]}
         />
       </View>
-    </View>
+    </Animated.View>
   );
 };
 

@@ -24,6 +24,7 @@ import HUD from '../components/HUD';
 import KanbanBoard from '../components/KanbanBoard';
 import SprintTimer from '../components/SprintTimer';
 import SprintResultScreen from './SprintResultScreen';
+import Toast from '../components/Toast';
 
 // Stores
 import { useSprintStore } from '../stores/sprintStore';
@@ -35,9 +36,12 @@ import { generateContract, resetSimState } from '../engine/SprintSimulator';
 import { GameLoop } from '../engine/GameLoop';
 
 import { colors } from '../constants/theme';
+import { formatCash } from '../utils/format.utils';
 
 const GameScreen: React.FC = () => {
   const phase = useSprintStore((s) => s.phase);
+  const sprintNumber = useSprintStore((s) => s.sprintNumber);
+  const cashOnHand = useSprintStore((s) => s.cashOnHand);
   const showSprintResult = useUIStore((s) => s.showSprintResult);
 
   // Stop game loop on unmount
@@ -93,7 +97,9 @@ const GameScreen: React.FC = () => {
                 <Text style={styles.startButtonText}>Start Sprint</Text>
               </TouchableOpacity>
               <Text style={styles.idleHint}>
-                Accept a new contract and start working!
+                {sprintNumber === 0
+                  ? 'Accept your first contract and start working!'
+                  : `Sprint #${sprintNumber} complete! Cash: ${formatCash(cashOnHand)}`}
               </Text>
             </Animated.View>
           )}
@@ -103,6 +109,9 @@ const GameScreen: React.FC = () => {
 
         {/* Sprint result modal overlay */}
         {showSprintResult && <SprintResultScreen />}
+
+        {/* Toast notification */}
+        <Toast />
       </View>
     </GestureHandlerRootView>
   );

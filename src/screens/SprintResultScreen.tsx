@@ -91,6 +91,7 @@ const SprintResultScreen: React.FC = () => {
       transparent
       animationType="fade"
       statusBarTranslucent
+      onRequestClose={handleCollect}
     >
       <View style={styles.overlay}>
         <Animated.View
@@ -106,12 +107,17 @@ const SprintResultScreen: React.FC = () => {
           <Text style={[styles.gradeLabel, { color: gradeColor }]}>
             {gradeLabel}
           </Text>
+          {(result.grade === 'C' || result.grade === 'F') && (
+            <Text style={styles.gradeHint}>
+              Tip: Start more tickets and smash blockers quickly!
+            </Text>
+          )}
 
           {/* Divider */}
           <View style={styles.divider} />
 
           {/* Stats */}
-          <View style={styles.statsContainer}>
+          <Animated.View entering={FadeIn.delay(300).duration(400)} style={styles.statsContainer}>
             <StatRow
               label="Tickets Completed"
               value={`${result.ticketsCompleted} / ${result.ticketsTotal}`}
@@ -125,13 +131,13 @@ const SprintResultScreen: React.FC = () => {
               value={`${result.blockersSmashed}`}
               icon="💥"
             />
-          </View>
+          </Animated.View>
 
           {/* Divider */}
           <View style={styles.divider} />
 
           {/* Cash breakdown */}
-          <View style={styles.cashContainer}>
+          <Animated.View entering={FadeIn.delay(600).duration(400)} style={styles.cashContainer}>
             <StatRow
               label="Cash Earned"
               value={formatCash(result.cashEarned)}
@@ -149,18 +155,20 @@ const SprintResultScreen: React.FC = () => {
               <Text style={styles.totalLabel}>TOTAL</Text>
               <Text style={styles.totalValue}>{formatCash(totalEarned)}</Text>
             </View>
-          </View>
+          </Animated.View>
 
           {/* Collect button */}
-          <TouchableOpacity
-            style={[styles.collectButton, { backgroundColor: gradeColor }]}
-            onPress={handleCollect}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.collectButtonText}>
-              💰 Collect & Continue
-            </Text>
-          </TouchableOpacity>
+          <Animated.View entering={FadeIn.delay(900).duration(400)}>
+            <TouchableOpacity
+              style={[styles.collectButton, { backgroundColor: gradeColor }]}
+              onPress={handleCollect}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.collectButtonText}>
+                {totalEarned > 0 ? '💰 Collect & Continue' : 'Try Again'}
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
         </Animated.View>
       </View>
     </Modal>
@@ -293,6 +301,13 @@ const styles = StyleSheet.create({
     color: colors.textDark,
     fontSize: 16,
     fontWeight: '900',
+  },
+  gradeHint: {
+    color: colors.textSecondary,
+    fontSize: 11,
+    fontStyle: 'italic',
+    marginTop: 4,
+    textAlign: 'center',
   },
 });
 

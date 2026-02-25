@@ -189,6 +189,7 @@ export function tick(): void {
       status: 'doing', // Blockers go straight to 'doing'
     };
     useBoardStore.getState().spawnBlocker(blockerTicket);
+    useUIStore.getState().toast('Blocker! All work is frozen!');
   }
 
   // ── 5. Day tracking ─────────────────────────────────────────────────────

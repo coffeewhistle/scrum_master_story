@@ -13,6 +13,8 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  withSequence,
+  withTiming,
   useDerivedValue,
 } from 'react-native-reanimated';
 import type { Ticket } from '../types';
@@ -51,11 +53,29 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
     width: `${animatedProgress.value * 100}%` as any,
   }));
 
+  // Celebration bounce when ticket completes
+  const cardScale = useSharedValue(1);
+
+  React.useEffect(() => {
+    if (isDone) {
+      // Celebration bounce: scale up then settle
+      cardScale.value = withSequence(
+        withSpring(1.05, { damping: 8, stiffness: 200 }),
+        withSpring(1, { damping: 12, stiffness: 150 }),
+      );
+    }
+  }, [isDone]);
+
+  const cardAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: cardScale.value }],
+  }));
+
   const handleStartWork = () => {
     moveTicket(ticket.id, 'doing');
   };
 
   return (
+    <Animated.View style={cardAnimStyle}>
     <View style={[styles.card, isDone && styles.cardDone]}>
       {/* Header row: title + story points badge */}
       <View style={styles.header}>
@@ -84,7 +104,7 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
             />
           </View>
           <Text style={styles.progressLabel}>
-            {ticket.pointsCompleted.toFixed(1)} / {ticket.storyPoints} pts
+            {Math.ceil(ticket.pointsCompleted)} / {ticket.storyPoints} pts
           </Text>
         </View>
       )}
@@ -107,6 +127,7 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
         </TouchableOpacity>
       )}
     </View>
+    </Animated.View>
   );
 };
 

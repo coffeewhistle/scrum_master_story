@@ -19,6 +19,7 @@ interface KanbanColumnProps {
   title: string;
   status: TicketStatus;
   tickets: Ticket[];
+  isBlocked?: boolean;
 }
 
 /** Header accent color per column status */
@@ -32,6 +33,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
   title,
   status,
   tickets,
+  isBlocked,
 }) => {
   const accentColor = COLUMN_COLORS[status];
 
@@ -56,6 +58,13 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
           <Text style={styles.countText}>{visibleCount}</Text>
         </View>
       </View>
+
+      {/* Blocked banner */}
+      {isBlocked && (
+        <View style={styles.blockedBanner}>
+          <Text style={styles.blockedText}>BLOCKED</Text>
+        </View>
+      )}
 
       {/* Scrollable ticket list */}
       <ScrollView
@@ -141,6 +150,18 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 11,
     fontStyle: 'italic',
+  },
+  blockedBanner: {
+    backgroundColor: colors.danger,
+    paddingVertical: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  blockedText: {
+    color: colors.textPrimary,
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 2,
   },
 });
 

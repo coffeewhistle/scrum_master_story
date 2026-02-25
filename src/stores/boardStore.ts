@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Ticket, TicketStatus } from '../types/ticket.types';
 
-interface BoardState {
+export interface BoardState {
   // State
   tickets: Ticket[];
   draggedTicketId: string | null;
@@ -14,6 +14,13 @@ interface BoardState {
   spawnBlocker: (ticket: Ticket) => void;
   setDraggedTicket: (id: string | null) => void;
   clearBoard: () => void;
+}
+
+/** Selector: are there any active blockers halting work? */
+export function selectIsBlocked(state: BoardState): boolean {
+  return state.tickets.some(
+    (t) => t.type === 'blocker' && t.status === 'doing',
+  );
 }
 
 export const useBoardStore = create<BoardState>()((set) => ({

@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { useBoardStore } from '../stores/boardStore';
+import { useBoardStore, selectIsBlocked } from '../stores/boardStore';
 import type { TicketStatus } from '../types';
 import KanbanColumn from './KanbanColumn';
 
@@ -20,6 +20,7 @@ const COLUMNS: { title: string; status: TicketStatus }[] = [
 
 const KanbanBoard: React.FC = () => {
   const tickets = useBoardStore((s) => s.tickets);
+  const isBlocked = useBoardStore(selectIsBlocked);
 
   return (
     <View style={styles.board}>
@@ -29,6 +30,7 @@ const KanbanBoard: React.FC = () => {
           title={col.title}
           status={col.status}
           tickets={tickets.filter((t) => t.status === col.status)}
+          isBlocked={col.status === 'doing' && isBlocked}
         />
       ))}
     </View>

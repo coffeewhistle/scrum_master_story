@@ -2,6 +2,8 @@
  * Formatting utilities for display values.
  */
 
+import { TICKS_PER_DAY } from '../constants/game.constants';
+
 /**
  * Format a cash amount with $ prefix and comma separators.
  * e.g., 1500 -> "$1,500"
@@ -27,9 +29,10 @@ export function formatPercent(ratio: number): string {
 }
 
 /**
- * Format velocity as points per tick display.
- * e.g., 1.5 -> "1.5 pts/tick"
+ * Format velocity as points per in-game day.
+ * e.g., 0.5 pts/tick * 8 ticks/day -> "4 pts/day"
  */
 export function formatVelocity(velocity: number): string {
-  return `${velocity.toFixed(1)} pts/tick`;
+  const ptsPerDay = velocity * TICKS_PER_DAY;
+  return `${ptsPerDay.toFixed(0)} pts/day`;
 }

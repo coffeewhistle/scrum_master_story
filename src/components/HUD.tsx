@@ -16,7 +16,7 @@ import { formatCash, formatDay, formatVelocity } from '../utils/format.utils';
 import { colors } from '../constants/theme';
 
 const HUD: React.FC = () => {
-  const { currentDay, totalDays, cashOnHand, currentContract, phase } =
+  const { currentDay, totalDays, cashOnHand, currentContract, phase, sprintNumber } =
     useSprintStore();
   const { totalVelocity } = useTeamStore();
 
@@ -28,7 +28,11 @@ const HUD: React.FC = () => {
       <View style={styles.mainRow}>
         {/* Day counter */}
         <View style={styles.section}>
-          <Text style={styles.label}>Sprint</Text>
+          <Text style={styles.label}>
+            {phase === 'active' || phase === 'review'
+              ? `Sprint #${sprintNumber}`
+              : 'Sprint'}
+          </Text>
           <Text style={styles.value}>
             {phase === 'idle' ? 'Idle' : formatDay(currentDay, totalDays)}
           </Text>
@@ -51,7 +55,7 @@ const HUD: React.FC = () => {
 
       {/* Velocity bar */}
       <View style={styles.velocityRow}>
-        <Text style={styles.velocityIcon}>⚡</Text>
+        <Text style={styles.velocityLabel}>Team Speed</Text>
         <Text style={styles.velocityText}>
           {formatVelocity(totalVelocity)}
         </Text>
@@ -112,9 +116,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 6,
   },
-  velocityIcon: {
-    fontSize: 12,
-    marginRight: 4,
+  velocityLabel: {
+    color: colors.textSecondary,
+    fontSize: 10,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginRight: 8,
   },
   velocityText: {
     color: colors.textSecondary,
