@@ -41,3 +41,6 @@ export const GRADE_THRESHOLDS = {
   D: 0.2,   // 20%+
   // Below 20% = F
 } as const;
+
+/** Maximum number of developers on the team (upgradeable in future) */
+export const MAX_TEAM_SIZE = 4;

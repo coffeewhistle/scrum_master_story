@@ -4,7 +4,7 @@
  */
 
 export type { Ticket, TicketType, TicketStatus } from './ticket.types';
-export type { Developer } from './developer.types';
+export type { Developer, DeveloperArchetype, DeveloperTrait } from './developer.types';
 export type {
   SprintPhase,
   Contract,
