@@ -28,6 +28,7 @@ interface BlockerCardProps {
 
 const BlockerCard: React.FC<BlockerCardProps> = ({ ticket }) => {
   const smashBlocker = useBoardStore((s) => s.smashBlocker);
+  const [smashing, setSmashing] = React.useState(false);
 
   // Pulsing glow animation
   const pulseScale = useSharedValue(1);
@@ -73,6 +74,8 @@ const BlockerCard: React.FC<BlockerCardProps> = ({ ticket }) => {
   }, [ticket.id, smashBlocker]);
 
   const handleSmash = () => {
+    if (smashing) return; // Prevent double-tap inflation of blockersSmashed
+    setSmashing(true);
     // Shrink animation, then remove
     cardScale.value = withSpring(0, { damping: 12, stiffness: 200 }, () => {
       runOnJS(doSmash)();
