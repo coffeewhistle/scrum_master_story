@@ -1,8 +1,9 @@
 /**
- * PayoutCalculator — Computes end-of-sprint financials and grade.
+ * PayoutCalculator — Computes end-of-sprint/contract financials and grade.
  *
- * Pure function: takes the contract, final ticket state, and blocker stats,
- * returns a SprintResult summary for the review screen.
+ * Two modes:
+ *  - Interim: sprint N of M complete, no cash yet, just progress summary
+ *  - Final: contract closes, payout curve applied, grade assigned
  */
 
 import type { Contract, SprintGrade, SprintResult, Ticket } from '../types';
@@ -10,19 +11,9 @@ import {
   PERFECT_COMPLETION_BONUS,
   EARLY_DELIVERY_BONUS_PER_DAY,
   GRADE_THRESHOLDS,
+  CONTRACT_PAYOUT_CURVE,
 } from '../constants/game.constants';
 
-/**
- * Determine the letter grade from a completion ratio using GRADE_THRESHOLDS.
- *
- * Thresholds are checked top-down:
- *   S  = 100%
- *   A  >= 80%
- *   B  >= 60%
- *   C  >= 40%
- *   D  >= 20%
- *   F  <  20%
- */
 function gradeFromRatio(ratio: number): SprintGrade {
   if (ratio >= GRADE_THRESHOLDS.S) return 'S';
   if (ratio >= GRADE_THRESHOLDS.A) return 'A';
@@ -33,47 +24,100 @@ function gradeFromRatio(ratio: number): SprintGrade {
 }
 
 /**
- * Calculate the final payout and performance summary for a completed sprint.
+ * Build an interim sprint result (no cash paid — more sprints remain).
  *
- * @param contract        The contract that was active during the sprint.
- * @param tickets         The full ticket array at sprint end (stories + blockers).
- * @param blockersSmashed Number of blocker tickets the player tapped/smashed.
- * @param daysRemaining   Days left on the sprint clock (> 0 means early delivery).
- * @returns A SprintResult suitable for the review overlay.
+ * @param contract            Active contract
+ * @param sprintTickets       Tickets on the board this sprint (stories + blockers)
+ * @param allContractStories  All stories for this contract (for contract-wide progress)
+ * @param blockersSmashed     Blockers smashed this sprint
  */
-export function calculatePayout(
+export function calculateInterimResult(
   contract: Contract,
-  tickets: Ticket[],
+  sprintTickets: Ticket[],
+  allContractStories: Ticket[],
+  blockersSmashed: number,
+): SprintResult {
+  const sprintStories = sprintTickets.filter((t) => t.type === 'story');
+  const sprintPointsCompleted = sprintStories
+    .filter((t) => t.status === 'done')
+    .reduce((sum, t) => sum + t.storyPoints, 0);
+  const sprintPointsTotal = sprintStories.reduce((sum, t) => sum + t.storyPoints, 0);
+
+  const contractStories = allContractStories.filter((t) => t.type === 'story');
+  const contractPointsCompleted = contractStories
+    .filter((t) => t.status === 'done')
+    .reduce((sum, t) => sum + t.storyPoints, 0);
+  const contractPointsTotal = contractStories.reduce((sum, t) => sum + t.storyPoints, 0);
+
+  const contractRatio = contractPointsTotal > 0
+    ? contractPointsCompleted / contractPointsTotal
+    : 0;
+
+  return {
+    kind: 'interim',
+    sprintNumber: contract.currentSprint,
+    totalSprints: contract.totalSprints,
+    ticketsCompleted: sprintStories.filter((t) => t.status === 'done').length,
+    ticketsTotal: sprintStories.length,
+    pointsCompleted: sprintPointsCompleted,
+    pointsTotal: sprintPointsTotal,
+    contractPointsCompleted,
+    contractPointsTotal,
+    blockersSmashed,
+    cashEarned: 0,
+    bonusEarned: 0,
+    earlyDeliveryBonus: 0,
+    daysRemaining: 0,
+    grade: gradeFromRatio(contractRatio),
+  };
+}
+
+/**
+ * Build a final contract result (cash is paid out using payout curve).
+ *
+ * @param contract            Closing contract
+ * @param allContractStories  ALL stories for this contract (backlog + board) at close
+ * @param blockersSmashed     Blockers smashed in the final sprint
+ * @param daysRemaining       Days left on the final sprint clock (> 0 = shipped early)
+ */
+export function calculateFinalResult(
+  contract: Contract,
+  allContractStories: Ticket[],
   blockersSmashed: number,
   daysRemaining: number = 0,
 ): SprintResult {
-  // Only story tickets count toward completion metrics.
-  const storyTickets = tickets.filter((t) => t.type === 'story');
-  const totalPoints = storyTickets.reduce((sum, t) => sum + t.storyPoints, 0);
-  const completedPoints = storyTickets
+  const storyTickets = allContractStories.filter((t) => t.type === 'story');
+  const contractPointsTotal = storyTickets.reduce((sum, t) => sum + t.storyPoints, 0);
+  const contractPointsCompleted = storyTickets
     .filter((t) => t.status === 'done')
     .reduce((sum, t) => sum + t.storyPoints, 0);
 
-  // Guard against divide-by-zero (shouldn't happen in practice).
-  const completionRatio = totalPoints > 0 ? completedPoints / totalPoints : 0;
+  const completionRatio = contractPointsTotal > 0
+    ? contractPointsCompleted / contractPointsTotal
+    : 0;
 
-  const cashEarned = contract.payout * completionRatio;
-  const bonusEarned =
-    completionRatio >= 1.0 ? cashEarned * PERFECT_COMPLETION_BONUS : 0;
-
-  // Early delivery bonus: 5% of base payout per remaining day
-  const earlyDeliveryBonus =
-    daysRemaining > 0
-      ? contract.payout * EARLY_DELIVERY_BONUS_PER_DAY * daysRemaining
-      : 0;
+  // Payout curve: ratio^1.3 rewards full completion more than linear
+  const curvedRatio = Math.pow(completionRatio, CONTRACT_PAYOUT_CURVE);
+  const cashEarned = contract.payout * curvedRatio;
+  const bonusEarned = completionRatio >= 1.0
+    ? cashEarned * PERFECT_COMPLETION_BONUS
+    : 0;
+  const earlyDeliveryBonus = daysRemaining > 0
+    ? contract.payout * EARLY_DELIVERY_BONUS_PER_DAY * daysRemaining
+    : 0;
 
   const grade = gradeFromRatio(completionRatio);
 
   return {
+    kind: 'final',
+    sprintNumber: contract.currentSprint,
+    totalSprints: contract.totalSprints,
     ticketsCompleted: storyTickets.filter((t) => t.status === 'done').length,
     ticketsTotal: storyTickets.length,
-    pointsCompleted: completedPoints,
-    pointsTotal: totalPoints,
+    pointsCompleted: contractPointsCompleted,
+    pointsTotal: contractPointsTotal,
+    contractPointsCompleted,
+    contractPointsTotal,
     blockersSmashed,
     cashEarned,
     bonusEarned,

@@ -29,6 +29,7 @@ import {
   TICKETS_PER_CONTRACT,
   CONTRACT_PAYOUT_RANGE,
   CLIENT_NAMES,
+  SPRINTS_PER_CONTRACT_RANGE,
 } from '../constants/tickets.constants';
 import {
   DEVELOPER_NAMES,
@@ -39,7 +40,7 @@ import {
   CANDIDATE_ARCHETYPE_POOL,
 } from '../constants/developer.constants';
 import { randomInt, randomPick, rollChance } from '../utils/random.utils';
-import { calculatePayout } from './PayoutCalculator';
+import { calculateInterimResult, calculateFinalResult } from './PayoutCalculator';
 import { GameLoop } from './GameLoop';
 
 // Lazy-imported store accessors.
@@ -80,33 +81,33 @@ function uuid(): string {
  */
 export function generateContract(): Contract {
   const ticketCount = randomInt(TICKETS_PER_CONTRACT.min, TICKETS_PER_CONTRACT.max);
+  const totalSprints = randomInt(SPRINTS_PER_CONTRACT_RANGE.min, SPRINTS_PER_CONTRACT_RANGE.max);
 
-  // Pick unique titles when possible (fall back to duplicates if the pool is
-  // smaller than the ticket count, though currently it isn't).
   const availableTitles = [...STORY_TITLES];
-  const tickets: Ticket[] = [];
+  const allStories: Ticket[] = [];
 
   for (let i = 0; i < ticketCount; i++) {
-    // Pull a title from the shrinking pool to avoid repeats within a contract.
     const titleIndex = Math.floor(Math.random() * availableTitles.length);
     const title = availableTitles.splice(titleIndex, 1)[0] ?? randomPick(STORY_TITLES);
 
-    tickets.push({
+    allStories.push({
       id: uuid(),
       type: 'story',
       title,
       storyPoints: randomInt(STORY_POINT_RANGE.min, STORY_POINT_RANGE.max),
       pointsCompleted: 0,
-      status: 'todo',
+      status: 'backlog', // All stories start in the backlog
     });
   }
 
   return {
     id: uuid(),
     clientName: randomPick(CLIENT_NAMES),
-    tickets,
+    allStories,
     payout: randomInt(CONTRACT_PAYOUT_RANGE.min, CONTRACT_PAYOUT_RANGE.max),
     sprintDays: DEFAULT_SPRINT_DAYS,
+    totalSprints,
+    currentSprint: 1,
   };
 }
 
@@ -183,12 +184,20 @@ export function shipEarly(): void {
   if (!contract || sprint.phase !== 'active') return;
 
   const daysRemaining = sprint.totalDays - sprint.currentDay;
-  const finalTickets = useBoardStore.getState().tickets;
+  const boardTickets = useBoardStore.getState().tickets;
+  const backlogTickets = useBoardStore.getState().backlog;
+
+  // Build full contract story list: previously done + current board + remaining backlog
+  const allContractStories = [
+    ...contract.allStories.filter((s) => s.status === 'done'),
+    ...boardTickets.filter((t) => t.type === 'story'),
+    ...backlogTickets,
+  ];
 
   useSprintStore.getState().endSprint();
   GameLoop.stop();
 
-  const result = calculatePayout(contract, finalTickets, blockersSmashed, daysRemaining);
+  const result = calculateFinalResult(contract, allContractStories, blockersSmashed, daysRemaining);
   useUIStore.getState().showResult(result);
 }
 
@@ -215,6 +224,19 @@ export function tick(): void {
   const ui = useUIStore.getState();
 
   const { tickets } = board;
+  const isPlanning = sprint.phase === 'planning';
+
+  // ── During planning: only advance days, no story progress or blockers ──
+  if (isPlanning) {
+    ticksThisDay++;
+    if (ticksThisDay >= TICKS_PER_DAY) {
+      ticksThisDay = 0;
+      // Planning day ends — transition to active execution
+      useSprintStore.getState().startActivePhase();
+      useSprintStore.getState().advanceDay();
+    }
+    return; // Skip all simulation during planning
+  }
 
   // ── 1. Detect active blockers ────────────────────────────────────────────
   const activeBlockers = tickets.filter(
@@ -227,11 +249,8 @@ export function tick(): void {
     const doingStories = tickets.filter(
       (t) => t.type === 'story' && t.status === 'doing',
     );
-
     if (doingStories.length > 0) {
-      // MVP: distribute velocity evenly across all doing stories.
       const velocityPerTicket = team.totalVelocity / doingStories.length;
-
       for (const ticket of doingStories) {
         board.progressTicket(ticket.id, velocityPerTicket);
       }
@@ -239,8 +258,6 @@ export function tick(): void {
   }
 
   // ── 3. Promote completed stories to 'done' ──────────────────────────────
-  // Re-read tickets after progression because `progressTicket` may have
-  // updated pointsCompleted in the store. We grab a fresh snapshot.
   const freshTickets = useBoardStore.getState().tickets;
   for (const ticket of freshTickets) {
     if (
@@ -261,7 +278,6 @@ export function tick(): void {
     (t) => t.type === 'story' && t.status !== 'done',
   );
 
-  // QA engineers reduce blocker spawn rate via their blockerRateReduction trait
   const qaReduction = useTeamStore.getState().developers.reduce(
     (sum, d) => sum + (d.trait?.blockerRateReduction ?? 0),
     0,
@@ -279,15 +295,14 @@ export function tick(): void {
       title: randomPick(BLOCKER_TITLES),
       storyPoints: BLOCKER_STORY_POINTS,
       pointsCompleted: 0,
-      status: 'doing', // Blockers go straight to 'doing'
+      status: 'doing',
     };
     useBoardStore.getState().spawnBlocker(blockerTicket);
     useUIStore.getState().toast('Blocker! All work is frozen!');
   }
 
-  // ── 4b. Check if all stories are done (early delivery available) ───────
+  // ── 4b. Check if all sprint stories are done (ship early available) ──────
   if (!hasIncompleteWork && currentActiveBlockers === 0) {
-    // All stories complete and no active blockers — player can ship early
     if (!useUIStore.getState().canShipEarly) {
       useUIStore.getState().setCanShipEarly(true);
       useUIStore.getState().toast('All tickets done! Ship early for a bonus!');
@@ -301,22 +316,39 @@ export function tick(): void {
     ticksThisDay = 0;
     sprint.advanceDay();
 
-    // Re-read sprint state after day advance.
     const updatedSprint = useSprintStore.getState();
 
     // ── 6. Sprint end check ──────────────────────────────────────────────
     if (updatedSprint.currentDay > updatedSprint.totalDays) {
-      const finalTickets = useBoardStore.getState().tickets;
       const contract = updatedSprint.currentContract;
+      if (!contract) return;
 
-      // Transition to review phase first (stops the game loop).
+      const boardTickets = useBoardStore.getState().tickets;
+      const backlogTickets = useBoardStore.getState().backlog;
+
       useSprintStore.getState().endSprint();
       GameLoop.stop();
 
-      if (contract) {
-        const result = calculatePayout(contract, finalTickets, blockersSmashed);
+      const isFinalSprint = contract.currentSprint >= contract.totalSprints;
 
-        // Show the review overlay — player will collect payout manually.
+      // Build full story list for progress calculation:
+      // previously-done stories (in allStories) + current board + remaining backlog
+      const allContractStories = [
+        ...contract.allStories.filter((s) => s.status === 'done'),
+        ...boardTickets.filter((t) => t.type === 'story'),
+        ...backlogTickets,
+      ];
+
+      if (isFinalSprint) {
+        const result = calculateFinalResult(contract, allContractStories, blockersSmashed);
+        ui.showResult(result);
+      } else {
+        const result = calculateInterimResult(
+          contract,
+          boardTickets,
+          allContractStories,
+          blockersSmashed,
+        );
         ui.showResult(result);
       }
     }
