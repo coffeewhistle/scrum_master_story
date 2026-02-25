@@ -25,6 +25,7 @@ interface KanbanColumnProps {
 
 /** Header accent color per column status */
 const COLUMN_COLORS: Record<TicketStatus, string> = {
+  backlog: colors.bgTrack,   // backlog tickets shouldn't appear on the Kanban board, but add a neutral fallback
   todo: colors.info,
   doing: colors.warning,
   done: colors.success,

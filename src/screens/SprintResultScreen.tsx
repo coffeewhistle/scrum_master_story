@@ -1,8 +1,13 @@
 /**
  * SprintResultScreen — Modal overlay shown at the end of each sprint.
  *
- * Displays the sprint grade, completion stats, and cash breakdown.
- * Player taps "Collect & Continue" to bank earnings and return to idle.
+ * Interim mode (result.kind === 'interim'):
+ *   - Shows sprint stats + contract-wide progress bar
+ *   - "Next Sprint →" button advances to planning phase
+ *
+ * Final mode (result.kind === 'final'):
+ *   - Shows grade, full stats, and cash breakdown
+ *   - "Collect & Continue" banks earnings and returns to idle
  */
 
 import React from 'react';
@@ -18,7 +23,6 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   withDelay,
-  withTiming,
   FadeIn,
   SlideInDown,
 } from 'react-native-reanimated';
@@ -28,6 +32,8 @@ import { useBoardStore } from '../stores/boardStore';
 import { formatCash } from '../utils/format.utils';
 import type { SprintGrade } from '../types';
 import { colors } from '../constants/theme';
+import { resetSimState } from '../engine/SprintSimulator';
+import { GameLoop } from '../engine/GameLoop';
 
 /** Grade → color mapping */
 const GRADE_COLORS: Record<SprintGrade, string> = {
@@ -52,6 +58,8 @@ const GRADE_LABELS: Record<SprintGrade, string> = {
 const SprintResultScreen: React.FC = () => {
   const { showSprintResult, lastSprintResult, dismissResult } = useUIStore();
   const collectPayout = useSprintStore((s) => s.collectPayout);
+  const advanceContractSprint = useSprintStore((s) => s.advanceContractSprint);
+  const clearAll = useBoardStore((s) => s.clearAll);
   const clearBoard = useBoardStore((s) => s.clearBoard);
 
   // Scale-in animation for the grade letter
@@ -77,15 +85,111 @@ const SprintResultScreen: React.FC = () => {
   }
 
   const result = lastSprintResult;
-  const gradeColor = GRADE_COLORS[result.grade];
-  const gradeLabel = GRADE_LABELS[result.grade];
   const totalEarned = result.cashEarned + result.bonusEarned + result.earlyDeliveryBonus;
+
+  const handleNextSprint = () => {
+    clearBoard();
+    dismissResult();
+    advanceContractSprint();
+    resetSimState();
+    GameLoop.start();
+  };
 
   const handleCollect = () => {
     collectPayout(totalEarned);
-    clearBoard();
+    clearAll();
     dismissResult();
   };
+
+  // ── INTERIM MODE ─────────────────────────────────────────────────────────
+  if (result.kind === 'interim') {
+    const contractProgress =
+      result.contractPointsTotal > 0
+        ? result.contractPointsCompleted / result.contractPointsTotal
+        : 0;
+
+    return (
+      <Modal
+        visible
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={handleNextSprint}
+      >
+        <View style={styles.overlay}>
+          <Animated.View
+            entering={SlideInDown.springify().damping(14)}
+            style={styles.card}
+          >
+            <Text style={styles.interimTitle}>
+              Sprint {result.sprintNumber} of {result.totalSprints} Complete
+            </Text>
+            <Text style={styles.interimSubtitle}>
+              {result.totalSprints - result.sprintNumber} sprint
+              {result.totalSprints - result.sprintNumber !== 1 ? 's' : ''} remaining on this contract
+            </Text>
+
+            <View style={styles.divider} />
+
+            <Animated.View
+              entering={FadeIn.delay(200).duration(400)}
+              style={styles.statsContainer}
+            >
+              <StatRow
+                label="Stories This Sprint"
+                value={`${result.ticketsCompleted} / ${result.ticketsTotal}`}
+              />
+              <StatRow
+                label="Points This Sprint"
+                value={`${result.pointsCompleted} / ${result.pointsTotal} pts`}
+              />
+              <StatRow
+                label="Blockers Smashed"
+                value={`${result.blockersSmashed}`}
+                icon="💥"
+              />
+            </Animated.View>
+
+            <View style={styles.divider} />
+
+            <Animated.View
+              entering={FadeIn.delay(400).duration(400)}
+              style={{ width: '100%' }}
+            >
+              <Text style={styles.contractProgressLabel}>
+                Contract Progress: {result.contractPointsCompleted} / {result.contractPointsTotal} pts
+              </Text>
+              <View style={styles.progressTrack}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: `${Math.round(contractProgress * 100)}%` as any },
+                  ]}
+                />
+              </View>
+            </Animated.View>
+
+            <Animated.View
+              entering={FadeIn.delay(600).duration(400)}
+              style={{ width: '100%', marginTop: 20 }}
+            >
+              <TouchableOpacity
+                style={styles.nextSprintButton}
+                onPress={handleNextSprint}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.nextSprintButtonText}>Next Sprint →</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          </Animated.View>
+        </View>
+      </Modal>
+    );
+  }
+
+  // ── FINAL MODE ───────────────────────────────────────────────────────────
+  const gradeColor = GRADE_COLORS[result.grade];
+  const gradeLabel = GRADE_LABELS[result.grade];
 
   return (
     <Modal
@@ -111,22 +215,23 @@ const SprintResultScreen: React.FC = () => {
           </Text>
           {(result.grade === 'C' || result.grade === 'D' || result.grade === 'F') && (
             <Text style={styles.gradeHint}>
-              Tip: Start more tickets and smash blockers quickly!
+              Tip: Commit fewer stories and focus on completing them!
             </Text>
           )}
 
-          {/* Divider */}
           <View style={styles.divider} />
 
-          {/* Stats */}
-          <Animated.View entering={FadeIn.delay(300).duration(400)} style={styles.statsContainer}>
+          <Animated.View
+            entering={FadeIn.delay(300).duration(400)}
+            style={styles.statsContainer}
+          >
             <StatRow
-              label="Tickets Completed"
+              label="Stories Completed"
               value={`${result.ticketsCompleted} / ${result.ticketsTotal}`}
             />
             <StatRow
               label="Story Points"
-              value={`${result.pointsCompleted} / ${result.pointsTotal} pts`}
+              value={`${result.contractPointsCompleted} / ${result.contractPointsTotal} pts`}
             />
             <StatRow
               label="Blockers Smashed"
@@ -135,11 +240,13 @@ const SprintResultScreen: React.FC = () => {
             />
           </Animated.View>
 
-          {/* Divider */}
           <View style={styles.divider} />
 
           {/* Cash breakdown */}
-          <Animated.View entering={FadeIn.delay(600).duration(400)} style={styles.cashContainer}>
+          <Animated.View
+            entering={FadeIn.delay(600).duration(400)}
+            style={styles.cashContainer}
+          >
             <StatRow
               label="Cash Earned"
               value={formatCash(result.cashEarned)}
@@ -167,7 +274,6 @@ const SprintResultScreen: React.FC = () => {
             </View>
           </Animated.View>
 
-          {/* Collect button */}
           <Animated.View entering={FadeIn.delay(900).duration(400)}>
             <TouchableOpacity
               style={[styles.collectButton, { backgroundColor: gradeColor }]}
@@ -318,6 +424,45 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     marginTop: 4,
     textAlign: 'center',
+  },
+  interimTitle: {
+    color: colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '900',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  interimSubtitle: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  contractProgressLabel: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginBottom: 6,
+  },
+  progressTrack: {
+    height: 8,
+    backgroundColor: colors.bgTrack,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: colors.success,
+    borderRadius: 4,
+  },
+  nextSprintButton: {
+    backgroundColor: colors.info,
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  nextSprintButtonText: {
+    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '900',
   },
 });
 

@@ -34,12 +34,18 @@ const HUD: React.FC<HUDProps> = ({ onTeamPress }) => {
         {/* Day counter */}
         <View style={styles.section}>
           <Text style={styles.label}>
-            {phase === 'active' || phase === 'review'
-              ? `Sprint #${sprintNumber}`
+            {phase === 'active' || phase === 'planning' || phase === 'review'
+              ? currentContract
+                ? `Sprint ${currentContract.currentSprint}/${currentContract.totalSprints}`
+                : `Sprint #${sprintNumber}`
               : 'Sprint'}
           </Text>
           <Text style={styles.value}>
-            {phase === 'idle' ? 'Idle' : formatDay(currentDay, totalDays)}
+            {phase === 'idle'
+              ? 'Idle'
+              : phase === 'planning'
+              ? 'Planning'
+              : formatDay(currentDay, totalDays)}
           </Text>
         </View>
 

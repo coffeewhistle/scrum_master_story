@@ -3,15 +3,16 @@
  *
  * Layout (top to bottom):
  *   1. <HUD />            — fixed header with day counter, client, cash
- *   2. <KanbanBoard />    — three-column board filling available space
- *   3. Bottom bar         — "Start Sprint" (idle) or <SprintTimer /> (active)
+ *   2. <PlanningBoard />  — shown during planning phase
+ *      <KanbanBoard />    — shown during active/review phases
+ *   3. Bottom bar         — phase-specific controls
  *
  * Sprint lifecycle:
- *   idle   → Shows "Start Sprint" button. Tapping generates a contract,
- *            populates the board, and starts the game loop.
- *   active → Shows the sprint timer. Board is interactive (move tickets,
- *            smash blockers). Engine ticks auto-progress work.
- *   review → Shows <SprintResultScreen /> as a modal overlay.
+ *   idle     → Shows "Accept Contract" button. Tapping generates a contract,
+ *              sets the backlog, and starts the planning phase.
+ *   planning → Shows <PlanningBoard /> + <SprintTimer />.
+ *   active   → Shows <KanbanBoard /> + <SprintTimer /> + optional Ship Early.
+ *   review   → Shows <SprintResultScreen /> as a modal overlay.
  */
 
 import React, { useCallback, useEffect } from 'react';
@@ -22,6 +23,7 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 // Components
 import HUD from '../components/HUD';
 import KanbanBoard from '../components/KanbanBoard';
+import PlanningBoard from '../components/PlanningBoard';
 import SprintTimer from '../components/SprintTimer';
 import SprintResultScreen from './SprintResultScreen';
 import Toast from '../components/Toast';
@@ -56,20 +58,19 @@ const GameScreen: React.FC = () => {
     };
   }, []);
 
-  const handleStartSprint = useCallback(() => {
-    // Guard: only start from idle phase
+  const handleAcceptContract = useCallback(() => {
     if (useSprintStore.getState().phase !== 'idle') return;
 
-    // Generate a new contract with random tickets
     const contract = generateContract();
 
-    // Populate the board with the contract's tickets
-    useBoardStore.getState().addTickets(contract.tickets);
+    // Set full backlog in boardStore; sprint board starts empty
+    useBoardStore.getState().setBacklog(contract.allStories);
+    useBoardStore.getState().setTickets([]);
 
-    // Start the sprint in the store
-    useSprintStore.getState().startSprint(contract);
+    // Accept contract — transitions to 'planning' phase
+    useSprintStore.getState().acceptContract(contract);
 
-    // Reset simulation counters and start the game loop
+    // Reset simulation counters and start GameLoop (planning day ticks)
     resetSimState();
     GameLoop.start();
   }, []);
@@ -82,7 +83,7 @@ const GameScreen: React.FC = () => {
 
         {/* Main board area */}
         <View style={styles.boardArea}>
-          <KanbanBoard />
+          {phase === 'planning' ? <PlanningBoard /> : <KanbanBoard />}
         </View>
 
         {/* Bottom bar */}
@@ -95,19 +96,21 @@ const GameScreen: React.FC = () => {
             >
               <TouchableOpacity
                 style={styles.startButton}
-                onPress={handleStartSprint}
+                onPress={handleAcceptContract}
                 activeOpacity={0.8}
               >
-                <Text style={styles.startButtonEmoji}>🚀</Text>
-                <Text style={styles.startButtonText}>Start Sprint</Text>
+                <Text style={styles.startButtonEmoji}>📝</Text>
+                <Text style={styles.startButtonText}>Accept Contract</Text>
               </TouchableOpacity>
               <Text style={styles.idleHint}>
                 {sprintNumber === 0
-                  ? 'Accept your first contract and start working!'
-                  : `Sprint #${sprintNumber} complete! Cash: ${formatCash(cashOnHand)}`}
+                  ? 'Accept your first contract to begin!'
+                  : `Contract complete! Cash: ${formatCash(cashOnHand)}`}
               </Text>
             </Animated.View>
           )}
+
+          {phase === 'planning' && <SprintTimer />}
 
           {phase === 'active' && (
             <>

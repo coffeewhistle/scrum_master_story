@@ -24,6 +24,7 @@ import { useSprintStore } from '../stores/sprintStore';
 import { colors } from '../constants/theme';
 import { formatCash } from '../utils/format.utils';
 import type { Developer } from '../types';
+import { TICKS_PER_DAY, DEFAULT_SPRINT_DAYS } from '../constants/game.constants';
 
 // Inline fallback for archetype labels in case the constants file isn't ready
 const ARCHETYPE_LABELS: Record<string, string> = {
@@ -204,47 +205,53 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
   disabled,
   disabledReason,
   onHire,
-}) => (
-  <View style={styles.card}>
-    <Text style={styles.cardAvatar}>{candidate.avatar}</Text>
-    <View style={styles.cardInfo}>
-      <Text style={styles.cardName}>{candidate.name}</Text>
-      <View style={styles.badgeRow}>
-        <View style={styles.archetypeBadge}>
-          <Text style={styles.archetypeBadgeText}>
-            {ARCHETYPE_LABELS[candidate.archetype] ?? candidate.archetype}
-          </Text>
-        </View>
-        {candidate.trait && (
-          <View style={styles.traitBadge}>
-            <Text style={styles.traitBadgeText}>{candidate.trait.label}</Text>
+}) => {
+  const activeDays = DEFAULT_SPRINT_DAYS - 1;
+  const ptsPerSprint = Math.round(candidate.velocity * TICKS_PER_DAY * activeDays);
+
+  return (
+    <View style={styles.card}>
+      <Text style={styles.cardAvatar}>{candidate.avatar}</Text>
+      <View style={styles.cardInfo}>
+        <Text style={styles.cardName}>{candidate.name}</Text>
+        <View style={styles.badgeRow}>
+          <View style={styles.archetypeBadge}>
+            <Text style={styles.archetypeBadgeText}>
+              {ARCHETYPE_LABELS[candidate.archetype] ?? candidate.archetype}
+            </Text>
           </View>
+          {candidate.trait && (
+            <View style={styles.traitBadge}>
+              <Text style={styles.traitBadgeText}>{candidate.trait.label}</Text>
+            </View>
+          )}
+        </View>
+        <Text style={styles.capacityStat}>+{ptsPerSprint} pts/sprint</Text>
+        {candidate.trait && (
+          <Text style={styles.traitDesc}>{candidate.trait.description}</Text>
+        )}
+        {disabledReason && (
+          <Text style={styles.disabledReason}>{disabledReason}</Text>
         )}
       </View>
-      {candidate.trait && (
-        <Text style={styles.traitDesc}>{candidate.trait.description}</Text>
-      )}
-      {disabledReason && (
-        <Text style={styles.disabledReason}>{disabledReason}</Text>
-      )}
-    </View>
-    <View style={styles.cardRight}>
-      <Text style={[styles.hireCost, !canAfford && styles.hireCostCantAfford]}>
-        {formatCash(candidate.hireCost ?? 0)}
-      </Text>
-      <TouchableOpacity
-        style={[styles.hireBtn, disabled && styles.hireBtnDisabled]}
-        onPress={onHire}
-        disabled={disabled}
-        activeOpacity={0.7}
-      >
-        <Text style={[styles.hireBtnText, disabled && styles.hireBtnTextDisabled]}>
-          Hire
+      <View style={styles.cardRight}>
+        <Text style={[styles.hireCost, !canAfford && styles.hireCostCantAfford]}>
+          {formatCash(candidate.hireCost ?? 0)}
         </Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.hireBtn, disabled && styles.hireBtnDisabled]}
+          onPress={onHire}
+          disabled={disabled}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.hireBtnText, disabled && styles.hireBtnTextDisabled]}>
+            Hire
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -430,6 +437,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 16,
     fontStyle: 'italic',
+  },
+  capacityStat: {
+    color: colors.success,
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 4,
   },
 });
 
