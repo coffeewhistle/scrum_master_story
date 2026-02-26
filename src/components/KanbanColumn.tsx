@@ -9,7 +9,7 @@
  */
 
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, LayoutChangeEvent } from 'react-native';
 import type { Ticket, TicketStatus } from '../types';
 import TicketCard from './TicketCard';
 import BlockerCard from './BlockerCard';
@@ -21,6 +21,8 @@ interface KanbanColumnProps {
   status: TicketStatus;
   tickets: Ticket[];
   isBlocked?: boolean;
+  isDropTarget?: boolean;
+  onLayout?: (e: LayoutChangeEvent) => void;
 }
 
 /** Header accent color per column status */
@@ -36,6 +38,8 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
   status,
   tickets,
   isBlocked,
+  isDropTarget,
+  onLayout,
 }) => {
   const accentColor = COLUMN_COLORS[status];
   const phase = useSprintStore((s) => s.phase);
@@ -50,7 +54,13 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
     storyTickets.length + activeBlockers.length;
 
   return (
-    <View style={styles.column}>
+    <View
+      style={[
+        styles.column,
+        isDropTarget && styles.columnDropTarget,
+      ]}
+      onLayout={onLayout}
+    >
       {/* Header strip */}
       <View style={[styles.header, { backgroundColor: accentColor }]}>
         <Text style={styles.headerTitle}>{title}</Text>
@@ -63,6 +73,13 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
       {isBlocked && (
         <View style={styles.blockedBanner}>
           <Text style={styles.blockedText}>BLOCKED</Text>
+        </View>
+      )}
+
+      {/* Drop target banner */}
+      {isDropTarget && !isBlocked && (
+        <View style={styles.dropTargetBanner}>
+          <Text style={styles.dropTargetText}>DROP HERE</Text>
         </View>
       )}
 
@@ -91,7 +108,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
                   ? 'Start a sprint to get tickets!'
                   : 'All tickets assigned!'
                 : status === 'doing'
-                ? 'Tap "Start Work" on a To Do ticket'
+                ? 'Drag a To Do ticket here to start work'
                 : 'Stories appear here when complete'}
             </Text>
           </View>
@@ -162,6 +179,22 @@ const styles = StyleSheet.create({
   blockedText: {
     color: colors.textPrimary,
     fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 2,
+  },
+  columnDropTarget: {
+    borderWidth: 2,
+    borderColor: colors.info,
+  },
+  dropTargetBanner: {
+    backgroundColor: colors.info,
+    paddingVertical: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dropTargetText: {
+    color: colors.textPrimary,
+    fontSize: 11,
     fontWeight: '900',
     letterSpacing: 2,
   },
