@@ -60,6 +60,27 @@ let ticksThisDay = 0;
 /** Running count of blockers the player has smashed this sprint. */
 let blockersSmashed = 0;
 
+/**
+ * Ticks remaining on the current flow burst.
+ * When > 0, team velocity gets a +20% bonus reward for completing a story.
+ */
+let flowBurstTicksRemaining = 0;
+
+/** How many ticks a flow burst lasts (~5 seconds at 800ms/tick). */
+const FLOW_BURST_DURATION = 6;
+
+/** Velocity bonus multiplier during a flow burst. */
+const FLOW_BURST_MULTIPLIER = 1.2;
+
+/**
+ * Penalty per story over the WIP limit (developer count).
+ * e.g. 0.10 = each extra story costs 10% of total velocity.
+ */
+const WIP_OVERAGE_PENALTY = 0.10;
+
+/** Minimum velocity multiplier — WIP penalty never reduces below this floor. */
+const WIP_PENALTY_FLOOR = 0.40;
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Generate a v4-style random ID (good enough for game entities). */
@@ -168,6 +189,7 @@ export function generateCandidates(): void {
 export function resetSimState(): void {
   ticksThisDay = 0;
   blockersSmashed = 0;
+  flowBurstTicksRemaining = 0;
   useUIStore.getState().setCanShipEarly(false);
   generateCandidates(); // Refresh job board each sprint
 }
@@ -250,8 +272,23 @@ export function tick(): void {
     const doingStories = tickets.filter(
       (t) => t.type === 'story' && t.status === 'doing',
     );
+
     if (doingStories.length > 0) {
-      const velocityPerTicket = team.totalVelocity / doingStories.length;
+      // WIP penalty: each story over the dev count costs WIP_OVERAGE_PENALTY
+      const wipLimit = team.developers.length;
+      const wipOverage = Math.max(0, doingStories.length - wipLimit);
+      const wipMultiplier = Math.max(
+        WIP_PENALTY_FLOOR,
+        1 - wipOverage * WIP_OVERAGE_PENALTY,
+      );
+
+      // Flow burst: bonus velocity for recently completing a story
+      if (flowBurstTicksRemaining > 0) flowBurstTicksRemaining--;
+      const flowMultiplier = flowBurstTicksRemaining > 0 ? FLOW_BURST_MULTIPLIER : 1;
+
+      const effectiveVelocity = team.totalVelocity * wipMultiplier * flowMultiplier;
+      const velocityPerTicket = effectiveVelocity / doingStories.length;
+
       for (const ticket of doingStories) {
         board.progressTicket(ticket.id, velocityPerTicket);
       }
@@ -260,6 +297,7 @@ export function tick(): void {
 
   // ── 3. Promote completed stories to 'done' ──────────────────────────────
   const freshTickets = useBoardStore.getState().tickets;
+  let storiesCompletedThisTick = 0;
   for (const ticket of freshTickets) {
     if (
       ticket.type === 'story' &&
@@ -267,7 +305,14 @@ export function tick(): void {
       ticket.pointsCompleted >= ticket.storyPoints
     ) {
       useBoardStore.getState().moveTicket(ticket.id, 'done');
+      storiesCompletedThisTick++;
     }
+  }
+
+  // Trigger flow burst when stories complete
+  if (storiesCompletedThisTick > 0) {
+    flowBurstTicksRemaining = FLOW_BURST_DURATION;
+    useUIStore.getState().toast('⚡ Flow state! +20% velocity');
   }
 
   // ── 4. Roll for blocker spawn ────────────────────────────────────────────
