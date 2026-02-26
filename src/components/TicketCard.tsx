@@ -57,7 +57,7 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
   React.useEffect(() => {
     if (isDone) {
       cardScale.value = withSequence(
-        withSpring(1.05, { damping: 8, stiffness: 200 }),
+        withSpring(1.02, { damping: 8, stiffness: 200 }),
         withSpring(1, { damping: 12, stiffness: 150 }),
       );
     }

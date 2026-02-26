@@ -309,10 +309,9 @@ export function tick(): void {
     }
   }
 
-  // Trigger flow burst when stories complete
+  // Trigger flow burst when stories complete (silent — HUD velocity shows it)
   if (storiesCompletedThisTick > 0) {
     flowBurstTicksRemaining = FLOW_BURST_DURATION;
-    useUIStore.getState().toast('⚡ Flow state! +20% velocity');
   }
 
   // ── 4. Roll for blocker spawn ────────────────────────────────────────────
