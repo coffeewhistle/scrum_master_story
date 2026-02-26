@@ -2,23 +2,27 @@
  * TicketCard — Renders a single story ticket on the Kanban board.
  *
  * Visual states:
- *   todo:  White card with a "Start Work" button to move to doing.
- *   doing: White card with an animated progress bar.
- *   done:  Faded card with a green checkmark.
+ *   todo:  Draggable — press and hold ~150ms, then drag right into Doing column.
+ *   doing: Card with animated progress bar (not draggable).
+ *   done:  Faded card with checkmark (not draggable).
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import {
+  Gesture,
+  GestureDetector,
+} from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
   withSequence,
-  withTiming,
-  useDerivedValue,
+  runOnJS,
 } from 'react-native-reanimated';
 import type { Ticket } from '../types';
 import { useBoardStore } from '../stores/boardStore';
+import { useDragContext } from '../context/DragContext';
 import { colors } from '../constants/theme';
 
 interface TicketCardProps {
@@ -27,6 +31,7 @@ interface TicketCardProps {
 
 const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
   const moveTicket = useBoardStore((s) => s.moveTicket);
+  const { doingColumnBounds, setDraggedTicketId } = useDragContext();
 
   const isDone = ticket.status === 'done';
   const isTodo = ticket.status === 'todo';
@@ -38,15 +43,9 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
       ? Math.min(ticket.pointsCompleted / ticket.storyPoints, 1)
       : 0;
 
-  // Animated progress bar width using reanimated
   const animatedProgress = useSharedValue(progressRatio);
-
-  // Update animated value when ticket progress changes
   React.useEffect(() => {
-    animatedProgress.value = withSpring(progressRatio, {
-      damping: 15,
-      stiffness: 120,
-    });
+    animatedProgress.value = withSpring(progressRatio, { damping: 15, stiffness: 120 });
   }, [progressRatio]);
 
   const progressBarStyle = useAnimatedStyle(() => ({
@@ -55,10 +54,8 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
 
   // Celebration bounce when ticket completes
   const cardScale = useSharedValue(1);
-
   React.useEffect(() => {
     if (isDone) {
-      // Celebration bounce: scale up then settle
       cardScale.value = withSequence(
         withSpring(1.05, { damping: 8, stiffness: 200 }),
         withSpring(1, { damping: 12, stiffness: 150 }),
@@ -66,18 +63,76 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
     }
   }, [isDone]);
 
-  const cardAnimStyle = useAnimatedStyle(() => ({
+  // Drag animation values (todo only)
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const dragScale = useSharedValue(1);
+  const isDraggingShared = useSharedValue(false);
+
+  const doMoveTicket = (id: string) => {
+    moveTicket(id, 'doing');
+  };
+
+  const resetDrag = () => {
+    'worklet';
+    translateX.value = withSpring(0, { damping: 18, stiffness: 250 });
+    translateY.value = withSpring(0, { damping: 18, stiffness: 250 });
+    dragScale.value = withSpring(1, { damping: 15, stiffness: 200 });
+    isDraggingShared.value = false;
+    runOnJS(setDraggedTicketId)(null);
+  };
+
+  const panGesture = Gesture.Pan()
+    .activateAfterLongPress(150)
+    .onStart(() => {
+      'worklet';
+      isDraggingShared.value = true;
+      dragScale.value = withSpring(1.05, { damping: 10, stiffness: 180 });
+      runOnJS(setDraggedTicketId)(ticket.id);
+    })
+    .onUpdate((e) => {
+      'worklet';
+      translateX.value = e.translationX;
+      translateY.value = e.translationY;
+    })
+    .onEnd((e) => {
+      'worklet';
+      // Use translationX to determine drop target.
+      // Doing column is to the right of Todo — a rightward drag of >40% of
+      // the column width means "drop into Doing".
+      const colWidth = doingColumnBounds?.width ?? 120;
+      const threshold = colWidth * 0.4;
+
+      if (e.translationX > threshold) {
+        runOnJS(doMoveTicket)(ticket.id);
+      }
+
+      resetDrag();
+    })
+    .onFinalize(() => {
+      'worklet';
+      if (isDraggingShared.value) {
+        resetDrag();
+      }
+    });
+
+  const draggableAnimStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+      { scale: isDraggingShared.value ? dragScale.value : cardScale.value },
+    ],
+    zIndex: isDraggingShared.value ? 999 : 1,
+    shadowOpacity: isDraggingShared.value ? 0.6 : 0.3,
+  }));
+
+  const staticAnimStyle = useAnimatedStyle(() => ({
     transform: [{ scale: cardScale.value }],
   }));
 
-  const handleStartWork = () => {
-    moveTicket(ticket.id, 'doing');
-  };
-
-  return (
-    <Animated.View style={cardAnimStyle}>
+  const cardContent = (
     <View style={[styles.card, isDone && styles.cardDone]}>
-      {/* Header row: title + story points badge */}
+      {/* Header: title + points badge */}
       <View style={styles.header}>
         <Text
           style={[styles.title, isDone && styles.titleDone]}
@@ -91,7 +146,7 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
         </View>
       </View>
 
-      {/* Progress bar (doing & done states) */}
+      {/* Progress bar — doing & done */}
       {(isDoing || isDone) && (
         <View style={styles.progressContainer}>
           <View style={styles.progressTrack}>
@@ -109,41 +164,45 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket }) => {
         </View>
       )}
 
-      {/* Story point display for todo */}
+      {/* Drag hint — todo only */}
       {isTodo && (
-        <Text style={styles.todoPoints}>
-          {ticket.storyPoints} story points
-        </Text>
-      )}
-
-      {/* Start Work button for todo tickets */}
-      {isTodo && (
-        <TouchableOpacity
-          style={styles.startButton}
-          onPress={handleStartWork}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.startButtonText}>▶ Start Work</Text>
-        </TouchableOpacity>
+        <Text style={styles.dragHint}>≡ hold & drag right to start</Text>
       )}
     </View>
-    </Animated.View>
+  );
+
+  // Non-draggable states (doing, done)
+  if (!isTodo) {
+    return (
+      <Animated.View style={[styles.wrapper, staticAnimStyle]}>
+        {cardContent}
+      </Animated.View>
+    );
+  }
+
+  // Draggable todo ticket
+  return (
+    <GestureDetector gesture={panGesture}>
+      <Animated.View style={[styles.wrapper, draggableAnimStyle]}>
+        {cardContent}
+      </Animated.View>
+    </GestureDetector>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.bgCard,
-    borderRadius: 8,
-    padding: 12,
+  wrapper: {
     marginBottom: 8,
     marginHorizontal: 4,
-    // Shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
-    elevation: 3,
+  },
+  card: {
+    backgroundColor: colors.bgCard,
+    borderRadius: 8,
+    padding: 12,
     borderLeftWidth: 3,
     borderLeftColor: colors.accent,
   },
@@ -205,22 +264,11 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'right',
   },
-  todoPoints: {
+  dragHint: {
     color: colors.textSecondary,
-    fontSize: 11,
+    fontSize: 10,
     marginTop: 6,
-  },
-  startButton: {
-    backgroundColor: colors.accent,
-    borderRadius: 6,
-    paddingVertical: 8,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  startButtonText: {
-    color: colors.textPrimary,
-    fontSize: 13,
-    fontWeight: '700',
+    fontStyle: 'italic',
   },
 });
 
