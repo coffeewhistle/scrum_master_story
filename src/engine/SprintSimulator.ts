@@ -173,6 +173,16 @@ export function resetSimState(): void {
 }
 
 /**
+ * Transition from planning → active. Called when the player taps "Start Sprint"
+ * after committing stories during the planning phase.
+ */
+export function startSprint(): void {
+  const sprint = useSprintStore.getState();
+  if (sprint.phase !== 'planning') return;
+  useSprintStore.getState().startActivePhase();
+}
+
+/**
  * Ship the current sprint early. Called by the UI when all stories are
  * complete and the player taps "Ship Early".
  *
@@ -226,17 +236,8 @@ export function tick(): void {
   const { tickets } = board;
   const isPlanning = sprint.phase === 'planning';
 
-  // ── During planning: only advance days, no story progress or blockers ──
-  if (isPlanning) {
-    ticksThisDay++;
-    if (ticksThisDay >= TICKS_PER_DAY) {
-      ticksThisDay = 0;
-      // Planning day ends — transition to active execution
-      useSprintStore.getState().startActivePhase();
-      useSprintStore.getState().advanceDay();
-    }
-    return; // Skip all simulation during planning
-  }
+  // ── During planning: GameLoop runs but does nothing — wait for player ──
+  if (isPlanning) return;
 
   // ── 1. Detect active blockers ────────────────────────────────────────────
   const activeBlockers = tickets.filter(

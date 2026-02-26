@@ -35,7 +35,7 @@ import { useBoardStore } from '../stores/boardStore';
 import { useUIStore } from '../stores/uiStore';
 
 // Engine
-import { generateContract, resetSimState, shipEarly, generateCandidates } from '../engine/SprintSimulator';
+import { generateContract, resetSimState, shipEarly, generateCandidates, startSprint } from '../engine/SprintSimulator';
 import { GameLoop } from '../engine/GameLoop';
 
 import { colors } from '../constants/theme';
@@ -110,7 +110,24 @@ const GameScreen: React.FC = () => {
             </Animated.View>
           )}
 
-          {phase === 'planning' && <SprintTimer />}
+          {phase === 'planning' && (
+            <Animated.View
+              entering={FadeIn.duration(300)}
+              style={styles.planningContainer}
+            >
+              <TouchableOpacity
+                style={styles.startSprintButton}
+                onPress={startSprint}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.startButtonEmoji}>🚀</Text>
+                <Text style={styles.startButtonText}>Start Sprint</Text>
+              </TouchableOpacity>
+              <Text style={styles.idleHint}>
+                Commit stories above, then start the sprint
+              </Text>
+            </Animated.View>
+          )}
 
           {phase === 'active' && (
             <>
@@ -200,6 +217,27 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 12,
     marginTop: 8,
+  },
+  planningContainer: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    backgroundColor: colors.bgPrimary,
+    borderTopWidth: 1,
+    borderTopColor: colors.accent,
+  },
+  startSprintButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.info,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    shadowColor: colors.info,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 5,
   },
   shipEarlyContainer: {
     alignItems: 'center',
